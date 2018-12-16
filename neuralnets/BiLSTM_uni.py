@@ -40,7 +40,7 @@ class BiLSTM_uni:
                          'charEmbeddings': None, 'charEmbeddingsSize': 30, 'charFilterSize': 30, 'charFilterLength': 3, 'charLSTMSize': 25, 'maxCharLength': 25,
                          'useTaskIdentifier': False, 'clipvalue': 0, 'clipnorm': 1,
                          'earlyStopping': 20, 'miniBatchSize': 32,
-                         'featureNames': ['tokens', 'casing', 'POS'], 'addFeatureDimensions': 10}
+                         'featureNames': ['tokens', 'casing'], 'addFeatureDimensions': 10}
         if params != None:
             defaultParams.update(params)
         self.params = defaultParams
@@ -411,7 +411,7 @@ class BiLSTM_uni:
                 dev_score, test_score = self.computeScore(modelName, self.data[modelName]['devMatrix'], self.data[modelName]['testMatrix'])
          
                 
-                if dev_score < max_dev_score[modelName]:
+                if dev_score > max_dev_score[modelName]:
                     max_dev_score[modelName] = dev_score
                     max_test_score[modelName] = test_score
                     no_improvement_since = 0
@@ -449,14 +449,14 @@ class BiLSTM_uni:
         return sentenceLengths
             
 
-    def tagSentences_generate(self, sentences, predictions_rand):
+    def tagSentences_generate(self, sentences, predictions_sampled):
         # Pad characters
         if 'characters' in self.params['featureNames']:
             self.padCharacters(sentences)
 
         labels = {}
         for modelName, model in self.models.items():
-            paddedPredLabels = self.predictLabels_generate(model, sentences, predictions_rand)
+            paddedPredLabels = self.predictLabels_generate(model, sentences, predictions_sampled)
             predLabels = []
             for idx in range(len(sentences)):
                 unpaddedPredLabels = []
@@ -484,15 +484,25 @@ class BiLSTM_uni:
             #predictions_alt = predictions.argmax(axis=-1) #argmax returns index, in [[i1, i2, ...]]          
             #print('prediction nach argmax: ', predictions_alt)
             
-            predicted = np.random.choice(len(predictions[0][-1]), p=predictions[0][-1])
-            predictions_rand[0].append(predicted)
-            print('neu: ', predictions_rand)
+            generation_mode = 'sample'   # max oder sample
             
-            predIdx = 0
-            for idx in indices:
-                predLabels[idx] = predictions_rand[predIdx]    
-                predIdx += 1   
-        
+            if generation_mode == 'sample':
+                ########### for sampling
+                predicted = np.random.choice(len(predictions[0][-1]), p=predictions[0][-1])
+                predictions_rand[0].append(predicted)
+                print('neu: ', predictions_rand)
+                predIdx = 0
+                for idx in indices:
+                    predLabels[idx] = predictions_rand[predIdx]    
+                    predIdx += 1   
+            if generation_mode == 'max':
+                ########### for argmax
+                predictions = predictions.argmax(axis=-1)
+                predIdx = 0
+                for idx in indices:
+                    predLabels[idx] = predictions[predIdx]    
+                    predIdx += 1 
+                
         return predLabels
     
     def tagSentences(self, sentences):
@@ -525,7 +535,7 @@ class BiLSTM_uni:
             for featureName in self.params['featureNames']:
                 inputData = np.asarray([sentences[idx][featureName] for idx in indices])
                 nnInput.append(inputData)
-            model.evaluate()
+            #model.evaluate()
             predictions = model.predict(nnInput, verbose=False)
             #print('PREDICTIONS: ', len(predictions[0][-1])) #probabilities der letzten predicition
             #print('prediction nach argmax: ', predictions_alt)
@@ -544,8 +554,12 @@ class BiLSTM_uni:
         if self.labelKeys[modelName].endswith('_BIO') or self.labelKeys[modelName].endswith('_IOBES') or self.labelKeys[modelName].endswith('_IOB'):
             return self.computeF1Scores(modelName, devMatrix, testMatrix)
         else:
-            #return self.computePerplexityScores(modelName, devMatrix, testMatrix)   
-            return self.computeAccScores(modelName, devMatrix, testMatrix)   
+            if 'POS' in self.params['featureNames']: # <------------------- POS needed for perplexity evaluation but would crash on accuracy
+                print('Perp')
+                return self.computePerplexityScores(modelName, devMatrix, testMatrix)   
+            else:
+                print('Acc')
+                return self.computeAccScores(modelName, devMatrix, testMatrix)   
 
     def computeAccScores(self, modelName, devMatrix, testMatrix):
         dev_acc = self.computeAcc(modelName, devMatrix)
@@ -571,11 +585,25 @@ class BiLSTM_uni:
         logging.info("Dev-Data: Perplexity: %.4f" % (dev_acc))
         logging.info("Test-Data: Perplexity: %.4f" % (test_acc))
         return dev_acc, test_acc   
-        
     
     def compute_perplexity(self, modelName, sentences):
         all_labels, all_predictions = self.predictLabels_for_perplexity_evaluation(self.models[modelName], sentences)
         
+        for i in range(len(all_labels)):
+            all_labels[i] = all_labels[i][:,:, np.newaxis]
+        
+        perplexity = []
+        for i in range(len(all_labels)):
+            perplexity.append(K.eval(K.exp(K.sparse_categorical_crossentropy(tf.convert_to_tensor(all_labels[i]), tf.convert_to_tensor(all_predictions[i])))))
+        
+        for i in range(len(perplexity)):
+            perplexity[i] = np.average(perplexity[i], axis=1)
+            perplexity[i] = np.average(perplexity[i])
+        
+        return np.mean(perplexity)
+    
+    def compute_perplexity_backup(self, modelName, sentences):
+        all_labels, all_predictions = self.predictLabels_for_perplexity_evaluation(self.models[modelName], sentences)
         start = time.time()
         label_flat = [[wort] for element in all_labels for satz in element for wort in satz]
         predictions_flat = [wort.tolist() for element in all_predictions for satz in element for wort in satz]
