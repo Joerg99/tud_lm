@@ -23,8 +23,8 @@ import logging
 import keras.losses
 import tensorflow as tf
 from .keraslayers.ChainCRF import ChainCRF
-
-
+import sys
+from sklearn.metrics import log_loss
 
 class BiLSTM_uni:
     def __init__(self, params=None):
@@ -33,7 +33,6 @@ class BiLSTM_uni:
         self.modelSavePath = None
         self.resultsSavePath = None
         
-
         # Hyperparameters for the network
         defaultParams = {'dropout': (0.5,0.5), 'classifier': ['Softmax'], 'LSTM-Size': (100,100), 'customClassifier': {},
                          'optimizer': 'adam',
@@ -100,10 +99,14 @@ class BiLSTM_uni:
         
     def buildModel(self):
         self.models = {}
-
+        print('########################')
+        print(self.embeddings.shape)
+        print(self.embeddings.shape[0])
+        print(self.embeddings.shape[1])
+        print('########################')
         tokens_input = Input(shape=(None,), dtype='int32', name='words_input')
         tokens = Embedding(input_dim=self.embeddings.shape[0], output_dim=self.embeddings.shape[1], weights=[self.embeddings], trainable=False, name='word_embeddings')(tokens_input)
-
+        
         inputNodes = [tokens_input]
         mergeInputLayers = [tokens]
 
@@ -204,7 +207,7 @@ class BiLSTM_uni:
 
                 if classifier == 'Softmax':
                     output = TimeDistributed(Dense(n_class_labels, activation='softmax'), name=modelName+'_softmax')(output)
-                    def my_loss(y_true, y_pred):
+                    def my_loss(y_true, y_pred): # my_loss = perplexity
                         perplexity = K.exp(K.sparse_categorical_crossentropy(y_true, y_pred))
                         print(perplexity)
                         return perplexity
@@ -281,8 +284,6 @@ class BiLSTM_uni:
                 nnInput = batch[modelName][1:]
                 self.models[modelName].train_on_batch(nnInput, nnLabels)  
                 
-                               
-            
           
 
     def minibatch_iterate_dataset(self, modelNames = None):
@@ -409,7 +410,7 @@ class BiLSTM_uni:
             for modelName in self.evaluateModelNames:
                 logging.info("-- %s --" % (modelName))
                 dev_score, test_score = self.computeScore(modelName, self.data[modelName]['devMatrix'], self.data[modelName]['testMatrix'])
-         
+                
                 
                 if dev_score > max_dev_score[modelName]:
                     max_dev_score[modelName] = dev_score
@@ -419,8 +420,8 @@ class BiLSTM_uni:
                 else:
                     no_improvement_since += 1
                     
-                #Save the model alle 10 Epochen
-                if self.modelSavePath != None and epoch % 10 == 0:
+                #Save the model alle 4 Epochen
+                if self.modelSavePath != None and epoch % 4 == 0:
                     self.saveModel(modelName, epoch, dev_score, test_score)
                     
                 if self.resultsSavePath != None:
@@ -428,11 +429,14 @@ class BiLSTM_uni:
                     self.resultsSavePath.write("\n")
                     self.resultsSavePath.flush()
                 
-                logging.info("\nScores from epoch with best Perplexity on Dev:\n  Dev-Perplexity: %.4f\n  Test-Score %.4f" % (max_dev_score[modelName], max_test_score[modelName]))
-                logging.info("")
+#                 logging.info("\nScores from epoch with best Perplexity on Dev:\n  Dev-Perplexity: %.4f\n  Test-Score %.4f" % (max_dev_score[modelName], max_test_score[modelName]))
+#                 logging.info("")
                 
             logging.info("%.2f sec for evaluation" % (time.time() - start_time))
             
+            #K.clear_session()
+
+
             if self.params['earlyStopping']  > 0 and no_improvement_since >= self.params['earlyStopping']:
                 logging.info("!!! Early stopping, no improvement after "+str(no_improvement_since)+" epochs !!!")
                 break
@@ -479,12 +483,16 @@ class BiLSTM_uni:
                 inputData = np.asarray([sentences[idx][featureName] for idx in indices])
                 nnInput.append(inputData)
             
+            if len(nnInput) == 3:
+                nnInput[-1] = np.zeros_like(nnInput[0])
+#             print(nnInput)
+            
             predictions = model.predict(nnInput, verbose=False)
             #print('PREDICTIONS: ', len(predictions[0][-1])) #probabilities der letzten predicition
             #predictions_alt = predictions.argmax(axis=-1) #argmax returns index, in [[i1, i2, ...]]          
             #print('prediction nach argmax: ', predictions_alt)
             
-            generation_mode = 'sample'   # max oder sample
+            generation_mode = 'max'   # max oder sample
             
             if generation_mode == 'sample':
                 ########### for sampling
@@ -554,11 +562,11 @@ class BiLSTM_uni:
         if self.labelKeys[modelName].endswith('_BIO') or self.labelKeys[modelName].endswith('_IOBES') or self.labelKeys[modelName].endswith('_IOB'):
             return self.computeF1Scores(modelName, devMatrix, testMatrix)
         else:
-            if 'POS' in self.params['featureNames']: # <------------------- POS needed for perplexity evaluation but would crash on accuracy
-                print('Perp')
+            if 'POS' in self.params['featureNames']: #  POS needed for perplexity evaluation but would crash on accuracy
+                print('Perplexity Evaluation')
                 return self.computePerplexityScores(modelName, devMatrix, testMatrix)   
             else:
-                print('Acc')
+                print('Accuracy Evaluation')
                 return self.computeAccScores(modelName, devMatrix, testMatrix)   
 
     def computeAccScores(self, modelName, devMatrix, testMatrix):
@@ -588,29 +596,128 @@ class BiLSTM_uni:
     
     def compute_perplexity(self, modelName, sentences):
         all_labels, all_predictions = self.predictLabels_for_perplexity_evaluation(self.models[modelName], sentences)
-        
-        for i in range(len(all_labels)):
-            all_labels[i] = all_labels[i][:,:, np.newaxis]
-        
-        perplexity = []
-        for i in range(len(all_labels)):
-            perplexity.append(K.eval(K.exp(K.sparse_categorical_crossentropy(tf.convert_to_tensor(all_labels[i]), tf.convert_to_tensor(all_predictions[i])))))
-        
-        for i in range(len(perplexity)):
-            perplexity[i] = np.average(perplexity[i], axis=1)
-            perplexity[i] = np.average(perplexity[i])
-        
-        return np.mean(perplexity)
+######### OPTION 1 model.evaluate should be the best option... but not working :( 
+#         print('k')
+#         model = self.loadModel('/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_306.0884_341.7019_1.h5')
+#         print(type(model))
+#         print(model.models)
+#         model = model.models['textgrid']
+#         print('kk')
+#         model.compile(loss='sparse_categorical_crossentropy', optimizer='adam')
+#         
+#         
+#         
+#         for i in range(len(all_labels)):
+#             all_labels[i] = all_labels[i][:,:, np.newaxis]
+#         perplexity = []
+#           
+#         for i in range(len(all_labels)): #range(10,15): 
+#             #start = time.time()
+#             xentropy = K.sparse_categorical_crossentropy(tf.keras.backend.cast(all_labels[i], dtype='float32'), tf.keras.backend.cast(all_predictions[i], dtype='float32')) #tf.convert_to_tensor(all_labels[i]), tf.convert_to_tensor(all_predictions[i]))
+#             perplexity.append(K.eval(K.pow(2.0, xentropy)))
+#             #print('time for one set of sentences. ', time.time()- start)
+#         #average for each datapoint
+#         for i in range(len(perplexity)):
+#             perplexity[i] = np.average(perplexity[i], axis=1)
+#             perplexity[i] = np.average(perplexity[i])
+#         
+#         p = np.mean(perplexity)
+#         model = None
+#         gc.collect()
+# 
+#         print(p)
+#         return p
+#########
+
+#########  OPTION 2 Numpy Version 
+# #         print(np.shape(all_labels[4])) # choose one batch of certain sentence length
+# #         print(np.shape(all_labels[4][0])) # choose one sentence of certain sentence length
+# #         print(all_labels[4][0])
+# #         print(len(all_predictions[4][0][0])) # probability distribution for a word (len = number of words in voc)
+#         
+        #indexing is just to reduce amount of data (time) to calculate perplexity on [4:8] should select sentence lengths a lot of examples
+#         all_labels = all_labels[4:8]
+#         all_predictions = all_predictions[4:8]
+#         print('all labels ', np.shape(all_labels))
+#           
+#         def label_to_one_hot(all_labels, all_predictions):
+#             oh_one_sentence = []
+#             for k in range(len(all_labels)):
+#                 for j in range(len(all_labels[k])):
+#                     for i in range(len(all_labels[k][j])):
+#                         oh_vector  = np.zeros(len(all_predictions[k][j][0]))
+#                         oh_vector[all_labels[k][j][i]] = 1
+#                         oh_one_sentence.append(oh_vector)
+#             return oh_one_sentence
+#           
+#         one_hot_label = label_to_one_hot(all_labels, all_predictions)
+#         print('one hot label', np.shape(one_hot_label))
+#         all_predictions = [value for sub in all_predictions for subsub in sub for value in subsub]
+#         print('all_predictions flat', np.shape(all_predictions))
+#         perplex = 0
+#         print('start perplexity calculation')
+#         start = time.time()
+#         for i in range(len(one_hot_label)):
+#             perplex += np.exp(log_loss(one_hot_label[i], all_predictions[i]))
+#         print('... and end: ', time.time()-start)
+#         return perplex / len(one_hot_label)
+#########
+
+######### OPTION 3 Working but memory problem
+#         calculate perplexity for each sentence length and each datapoint and append to list
+#         # add an axis to fit tensor shape used for Option 3
+#         for i in range(len(all_labels)):
+#             all_labels[i] = all_labels[i][:,:, np.newaxis]
+#         perplexity = []
+#         print('************************* ', np.shape(all_labels))
+#         print('************************* ', np.shape(all_predictions))        
+#          
+#         for i in range(len(all_labels)): #range(10,15): 
+#             #start = time.time()
+#             xentropy = K.sparse_categorical_crossentropy(tf.keras.backend.cast(all_labels[i], dtype='float32'), tf.keras.backend.cast(all_predictions[i], dtype='float32')) #tf.convert_to_tensor(all_labels[i]), tf.convert_to_tensor(all_predictions[i]))
+#             perplexity.append(K.eval(K.pow(2.0, xentropy)))
+#             #print('time for one set of sentences. ', time.time()- start)
+#         #average for each datapoint
+#         for i in range(len(perplexity)):
+#             perplexity[i] = np.average(perplexity[i], axis=1)
+#             perplexity[i] = np.average(perplexity[i])
+#          
+#         self.numpy_perplexity(all_labels, all_predictions)
+#          
+#         return np.mean(perplexity)
+     
     
-    def compute_perplexity_backup(self, modelName, sentences):
-        all_labels, all_predictions = self.predictLabels_for_perplexity_evaluation(self.models[modelName], sentences)
-        start = time.time()
-        label_flat = [[wort] for element in all_labels for satz in element for wort in satz]
-        predictions_flat = [wort.tolist() for element in all_predictions for satz in element for wort in satz]
-        predictions_flat = tf.convert_to_tensor(predictions_flat)
-        print('conv time: ', time.time() - start)
-        perplexity = K.exp(K.sparse_categorical_crossentropy(label_flat, predictions_flat))
-        return K.eval(perplexity).mean()
+    def numpy_perplexity(self, all_labels, all_predictions):
+        
+        def label_to_one_hot(all_labels, all_predictions):
+            oh_one_sentence = []
+            for k in range(len(all_labels)):
+                for j in range(len(all_labels[k])):
+                    for i in range(len(all_labels[k][j])):
+                        oh_vector  = np.zeros(len(all_predictions[k][j][0]))
+                        oh_vector[all_labels[k][j][i]] = 1
+                        oh_one_sentence.append(oh_vector)
+            return oh_one_sentence
+          
+        one_hot_label = label_to_one_hot(all_labels, all_predictions)
+        all_predictions = [value for sub in all_predictions for subsub in sub for value in subsub]
+        perplex = 0
+        for i in range(len(one_hot_label)):
+            perplex += np.power(log_loss(one_hot_label[i], all_predictions[i]), 2.0)
+        print('external ', perplex / len(one_hot_label))
+
+        
+#########
+    
+#     def compute_perplexity_backup(self, modelName, sentences):
+#         all_labels, all_predictions = self.predictLabels_for_perplexity_evaluation(self.models[modelName], sentences)
+#         start = time.time()
+#         label_flat = [[wort] for element in all_labels for satz in element for wort in satz]
+#         predictions_flat = [wort.tolist() for element in all_predictions for satz in element for wort in satz]
+#         predictions_flat = tf.convert_to_tensor(predictions_flat)
+#         print('conv time: ', time.time() - start)
+#         perplexity = K.exp(K.sparse_categorical_crossentropy(label_flat, predictions_flat))
+#         return K.eval(perplexity).mean()
 
     def predictLabels_for_perplexity_evaluation(self, model, sentences):
         #print(np.shape(sentences))
@@ -630,7 +737,6 @@ class BiLSTM_uni:
             predictions_softmax = model.predict(nnInput, verbose=False)
             all_preds_softmax.append(predictions_softmax)
             #print('nnOutput:', np.shape(predictions_softmax), type(predictions_softmax))
-                        
         return all_labels, all_preds_softmax
     
     def computeF1Scores(self, modelName, devMatrix, testMatrix):

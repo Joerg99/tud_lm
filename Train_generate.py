@@ -71,14 +71,15 @@ pickleFile = perpareDataset(embeddingsPath, my_datasets)
 embeddings, mappings, data = loadDatasetPickle(pickleFile)
 
 # Some network hyperparameters
-# for perplexity add 'POS' to featureName
-params = {'featureNames': ['tokens', 'casing', 'POS'], 'classifier': ['Softmax'],'charEmbeddings': 'LSTM', 'optimizer': 'adam', 'LSTM-Size': [400], 'dropout': (0.5)}
+
+##### for perplexity add 'POS' to featureNames #######
+params = {'featureNames': ['tokens', 'casing', 'POS'], 'classifier': ['Softmax'],'charEmbeddings': None, 'optimizer': 'adam', 'LSTM-Size': [40], 'dropout': (0.8)}
 
 model = BiLSTM_uni(params)
 model.setMappings(mappings, embeddings)
 model.setDataset(my_datasets, data)
 model.storeResults('results/textgrid_results.csv') #Path to store performance scores for dev / test
-#model.modelSavePath = "models/stanza_perpLoss_400_drop05_train_char/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
+#model.modelSavePath = "models/stanza200k_perpLoss_100_drop05/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
 model.modelSavePath = "models/test/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 model.fit(epochs=101)

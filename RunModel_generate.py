@@ -25,10 +25,11 @@ import keras.losses
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/stanza_perpLoss_400_drop05_train/textgrid_0.1334_0.1334_31.h5' # uni direction
+modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/stanza200k_perpLoss_100_drop05/textgrid_159.6041_591.0333_5.h5' # with perplexity and POS label DOESNT RUN
+#modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/stanza_perpLoss_400_drop05_train/textgrid_0.1249_0.1333_31.h5' # with ACC and no POS  RUNS!
 lstmModel = BiLSTM_uni.loadModel(modelPath)
 
-text = 'startseq'
+text = 'ich' #'startseq'
 
 predictions_sampled = [[]]
 # :: Prepare the input ::
