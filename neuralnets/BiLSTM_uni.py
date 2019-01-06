@@ -597,8 +597,8 @@ class BiLSTM_uni:
     def compute_perplexity(self, modelName, sentences):
         all_labels, all_predictions = self.predictLabels_for_perplexity_evaluation(self.models[modelName], sentences)
         
-        print('shapes of preds and labels: ', np.shape(all_predictions[5]), np.shape(all_labels[5]))
-        self.numpy_perplexity(all_labels, all_predictions)
+        
+        return self.numpy_perplexity(all_labels, all_predictions)
         
 ######### OPTION 1 model.evaluate should be the best option... but not working :( 
 #         print('k')
@@ -637,20 +637,20 @@ class BiLSTM_uni:
 ######### OPTION 3 Working but memory problem
 #         calculate perplexity for each sentence length and each datapoint and append to list
 #         # add an axis to fit tensor shape used for Option 3
-        for i in range(len(all_labels)):
-            all_labels[i] = all_labels[i][:,:, np.newaxis]
-        perplexity = []
-          
-        for i in range(len(all_labels)): #range(10,15): 
-            xentropy = K.sparse_categorical_crossentropy(tf.keras.backend.cast(all_labels[i], dtype='float32'), tf.keras.backend.cast(all_predictions[i], dtype='float32')) #tf.convert_to_tensor(all_labels[i]), tf.convert_to_tensor(all_predictions[i]))
-            perplexity.append(K.eval(K.pow(2.0, xentropy)))
-        #average for each datapoint
-        for i in range(len(perplexity)):
-            perplexity[i] = np.average(perplexity[i], axis=1)
-            perplexity[i] = np.average(perplexity[i])
-          
-        
-        return np.mean(perplexity)
+#         for i in range(len(all_labels)):
+#             all_labels[i] = all_labels[i][:,:, np.newaxis]
+#         perplexity = []
+#           
+#         for i in range(len(all_labels)): #range(10,15): 
+#             xentropy = K.sparse_categorical_crossentropy(tf.keras.backend.cast(all_labels[i], dtype='float32'), tf.keras.backend.cast(all_predictions[i], dtype='float32')) #tf.convert_to_tensor(all_labels[i]), tf.convert_to_tensor(all_predictions[i]))
+#             perplexity.append(K.eval(K.pow(2.0, xentropy)))
+#         #average for each datapoint
+#         for i in range(len(perplexity)):
+#             perplexity[i] = np.average(perplexity[i], axis=1)
+#             perplexity[i] = np.average(perplexity[i])
+#           
+#         
+#         return np.mean(perplexity)
      
     
     def numpy_perplexity(self, all_labels, all_predictions):
@@ -681,9 +681,9 @@ class BiLSTM_uni:
         
         perplexities = []
         for i in range(len(all_predictions)):
-            perplexities.append(np.power(cross_entropy(all_predictions[i], all_labels_oh[i]), 2.0))
-        print('manually calulated perplexity: ', np.mean(perplexities))
-
+            perplexities.append(np.power(2.0, cross_entropy(all_predictions[i], all_labels_oh[i])))
+        #print('manually calulated perplexity: ', np.mean(perplexities))
+        return np.mean(perplexities)
 
         
 #########
