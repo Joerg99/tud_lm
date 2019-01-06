@@ -596,6 +596,10 @@ class BiLSTM_uni:
     
     def compute_perplexity(self, modelName, sentences):
         all_labels, all_predictions = self.predictLabels_for_perplexity_evaluation(self.models[modelName], sentences)
+        
+        print('shapes of preds and labels: ', np.shape(all_predictions[5]), np.shape(all_labels[5]))
+        self.numpy_perplexity(all_labels[5], all_predictions[5])
+        
 ######### OPTION 1 model.evaluate should be the best option... but not working :( 
 #         print('k')
 #         model = self.loadModel('/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_306.0884_341.7019_1.h5')
@@ -606,7 +610,7 @@ class BiLSTM_uni:
 #         model.compile(loss='sparse_categorical_crossentropy', optimizer='adam')
 #         
 #         
-#         
+#         # idea is to run following code on the model compiled above... but it doesnt work
 #         for i in range(len(all_labels)):
 #             all_labels[i] = all_labels[i][:,:, np.newaxis]
 #         perplexity = []
@@ -639,7 +643,7 @@ class BiLSTM_uni:
 #         all_labels = all_labels[4:8]
 #         all_predictions = all_predictions[4:8]
 #         print('all labels ', np.shape(all_labels))
-#           
+#            
 #         def label_to_one_hot(all_labels, all_predictions):
 #             oh_one_sentence = []
 #             for k in range(len(all_labels)):
@@ -649,7 +653,9 @@ class BiLSTM_uni:
 #                         oh_vector[all_labels[k][j][i]] = 1
 #                         oh_one_sentence.append(oh_vector)
 #             return oh_one_sentence
-#           
+#            
+#            
+#            
 #         one_hot_label = label_to_one_hot(all_labels, all_predictions)
 #         print('one hot label', np.shape(one_hot_label))
 #         all_predictions = [value for sub in all_predictions for subsub in sub for value in subsub]
@@ -666,29 +672,23 @@ class BiLSTM_uni:
 ######### OPTION 3 Working but memory problem
 #         calculate perplexity for each sentence length and each datapoint and append to list
 #         # add an axis to fit tensor shape used for Option 3
-#         for i in range(len(all_labels)):
-#             all_labels[i] = all_labels[i][:,:, np.newaxis]
-#         perplexity = []
-#         print('************************* ', np.shape(all_labels))
-#         print('************************* ', np.shape(all_predictions))        
-#          
-#         for i in range(len(all_labels)): #range(10,15): 
-#             #start = time.time()
-#             xentropy = K.sparse_categorical_crossentropy(tf.keras.backend.cast(all_labels[i], dtype='float32'), tf.keras.backend.cast(all_predictions[i], dtype='float32')) #tf.convert_to_tensor(all_labels[i]), tf.convert_to_tensor(all_predictions[i]))
-#             perplexity.append(K.eval(K.pow(2.0, xentropy)))
-#             #print('time for one set of sentences. ', time.time()- start)
-#         #average for each datapoint
-#         for i in range(len(perplexity)):
-#             perplexity[i] = np.average(perplexity[i], axis=1)
-#             perplexity[i] = np.average(perplexity[i])
-#          
-#         self.numpy_perplexity(all_labels, all_predictions)
-#          
-#         return np.mean(perplexity)
+        for i in range(len(all_labels)):
+            all_labels[i] = all_labels[i][:,:, np.newaxis]
+        perplexity = []
+          
+        for i in range(len(all_labels)): #range(10,15): 
+            xentropy = K.sparse_categorical_crossentropy(tf.keras.backend.cast(all_labels[i], dtype='float32'), tf.keras.backend.cast(all_predictions[i], dtype='float32')) #tf.convert_to_tensor(all_labels[i]), tf.convert_to_tensor(all_predictions[i]))
+            perplexity.append(K.eval(K.pow(2.0, xentropy)))
+        #average for each datapoint
+        for i in range(len(perplexity)):
+            perplexity[i] = np.average(perplexity[i], axis=1)
+            perplexity[i] = np.average(perplexity[i])
+          
+        
+        return np.mean(perplexity)
      
     
     def numpy_perplexity(self, all_labels, all_predictions):
-        
         def label_to_one_hot(all_labels, all_predictions):
             oh_one_sentence = []
             for k in range(len(all_labels)):
@@ -698,13 +698,38 @@ class BiLSTM_uni:
                         oh_vector[all_labels[k][j][i]] = 1
                         oh_one_sentence.append(oh_vector)
             return oh_one_sentence
-          
-        one_hot_label = label_to_one_hot(all_labels, all_predictions)
-        all_predictions = [value for sub in all_predictions for subsub in sub for value in subsub]
-        perplex = 0
-        for i in range(len(one_hot_label)):
-            perplex += np.power(log_loss(one_hot_label[i], all_predictions[i]), 2.0)
-        print('external ', perplex / len(one_hot_label))
+        
+        #all_labels = label_to_one_hot(all_labels, all_predictions)
+        
+        print(np.shape(all_labels))
+        
+        oh_labels = np.zeros_like(all_predictions)
+        
+        for i in range(len(all_labels)):
+            for j in range(len(all_labels[i])):
+                oh_labels[i][j][all_labels[i][j]] = 1
+        
+        
+
+        
+        
+        def cross_entropy(predictions, targets, epsilon=1e-12):
+            """
+            Computes cross entropy between targets (encoded as one-hot vectors)
+            and predictions. 
+            Input: predictions (N, k) ndarray
+                   targets (N, k) ndarray        
+            Returns: scalar
+            """
+            predictions = np.clip(predictions, epsilon, 1. - epsilon)
+            N = predictions.shape[0]
+            ce = (-np.sum(targets*np.log(predictions+1e-9))/N)
+            return ce
+        
+        
+        print(np.power(cross_entropy(all_predictions, oh_labels), 2.0))
+        
+
 
         
 #########
