@@ -598,7 +598,7 @@ class BiLSTM_uni:
         all_labels, all_predictions = self.predictLabels_for_perplexity_evaluation(self.models[modelName], sentences)
         
         print('shapes of preds and labels: ', np.shape(all_predictions[5]), np.shape(all_labels[5]))
-        self.numpy_perplexity(all_labels[5], all_predictions[5])
+        self.numpy_perplexity(all_labels, all_predictions)
         
 ######### OPTION 1 model.evaluate should be the best option... but not working :( 
 #         print('k')
@@ -633,41 +633,6 @@ class BiLSTM_uni:
 #         return p
 #########
 
-#########  OPTION 2 Numpy Version 
-# #         print(np.shape(all_labels[4])) # choose one batch of certain sentence length
-# #         print(np.shape(all_labels[4][0])) # choose one sentence of certain sentence length
-# #         print(all_labels[4][0])
-# #         print(len(all_predictions[4][0][0])) # probability distribution for a word (len = number of words in voc)
-#         
-        #indexing is just to reduce amount of data (time) to calculate perplexity on [4:8] should select sentence lengths a lot of examples
-#         all_labels = all_labels[4:8]
-#         all_predictions = all_predictions[4:8]
-#         print('all labels ', np.shape(all_labels))
-#            
-#         def label_to_one_hot(all_labels, all_predictions):
-#             oh_one_sentence = []
-#             for k in range(len(all_labels)):
-#                 for j in range(len(all_labels[k])):
-#                     for i in range(len(all_labels[k][j])):
-#                         oh_vector  = np.zeros(len(all_predictions[k][j][0]))
-#                         oh_vector[all_labels[k][j][i]] = 1
-#                         oh_one_sentence.append(oh_vector)
-#             return oh_one_sentence
-#            
-#            
-#            
-#         one_hot_label = label_to_one_hot(all_labels, all_predictions)
-#         print('one hot label', np.shape(one_hot_label))
-#         all_predictions = [value for sub in all_predictions for subsub in sub for value in subsub]
-#         print('all_predictions flat', np.shape(all_predictions))
-#         perplex = 0
-#         print('start perplexity calculation')
-#         start = time.time()
-#         for i in range(len(one_hot_label)):
-#             perplex += np.exp(log_loss(one_hot_label[i], all_predictions[i]))
-#         print('... and end: ', time.time()-start)
-#         return perplex / len(one_hot_label)
-#########
 
 ######### OPTION 3 Working but memory problem
 #         calculate perplexity for each sentence length and each datapoint and append to list
@@ -689,30 +654,18 @@ class BiLSTM_uni:
      
     
     def numpy_perplexity(self, all_labels, all_predictions):
-        def label_to_one_hot(all_labels, all_predictions):
-            oh_one_sentence = []
-            for k in range(len(all_labels)):
-                for j in range(len(all_labels[k])):
-                    for i in range(len(all_labels[k][j])):
-                        oh_vector  = np.zeros(len(all_predictions[k][j][0]))
-                        oh_vector[all_labels[k][j][i]] = 1
-                        oh_one_sentence.append(oh_vector)
-            return oh_one_sentence
-        
-        #all_labels = label_to_one_hot(all_labels, all_predictions)
         
         print(np.shape(all_labels))
         
-        oh_labels = np.zeros_like(all_predictions)
-        
-        for i in range(len(all_labels)):
-            for j in range(len(all_labels[i])):
-                oh_labels[i][j][all_labels[i][j]] = 1
-        
-        
-
-        
-        
+        all_labels_oh = []
+        for k in range(len(all_labels)):
+            oh_labels = np.zeros_like(all_predictions[k])
+            
+            for i in range(len(all_labels[k])):
+                for j in range(len(all_labels[k][i])):
+                    oh_labels[i][j][all_labels[k][i][j]] = 1
+            all_labels_oh.append(oh_labels)
+            
         def cross_entropy(predictions, targets, epsilon=1e-12):
             """
             Computes cross entropy between targets (encoded as one-hot vectors)
@@ -723,12 +676,13 @@ class BiLSTM_uni:
             """
             predictions = np.clip(predictions, epsilon, 1. - epsilon)
             N = predictions.shape[0]
-            ce = (-np.sum(targets*np.log(predictions+1e-9))/N)
+            ce = (-np.sum(targets*np.log(predictions+1e-9))/N) / predictions.shape[1]
             return ce
         
-        
-        print(np.power(cross_entropy(all_predictions, oh_labels), 2.0))
-        
+        perplexities = []
+        for i in range(len(all_predictions)):
+            perplexities.append(np.power(cross_entropy(all_predictions[i], all_labels_oh[i]), 2.0))
+        print('manually calulated perplexity: ', np.mean(perplexities))
 
 
         
