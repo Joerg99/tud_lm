@@ -54,7 +54,7 @@ my_datasets = {
 
 # :: Path on your computer to the word embeddings. Embeddings by Komninos et al. will be downloaded automatically ::
 # embeddingsPath = 'komninos_english_embeddings.gz'
-embeddingsPath = 'embedding_textgrid_300_lower.bin'
+embeddingsPath = 'embedding_textgrid_300_lower_pos_neg.bin'
 
 # :: Prepares the dataset to be used with the LSTM-network. Creates and stores cPickle files in the pkl/ folder ::
 pickleFile = perpareDataset(embeddingsPath, my_datasets)
@@ -73,7 +73,7 @@ embeddings, mappings, data = loadDatasetPickle(pickleFile)
 # Some network hyperparameters
 
 ##### for perplexity add 'POS' to featureNames #######
-params = {'featureNames': ['tokens', 'casing', 'POS'], 'classifier': ['Softmax'],'charEmbeddings': None, 'optimizer': 'adam', 'LSTM-Size': [40], 'dropout': (0.8)}
+params = {'featureNames': ['tokens', 'casing', 'POS'], 'classifier': ['Softmax'],'charEmbeddings': None, 'optimizer': 'adam', 'LSTM-Size': [100], 'dropout': (0.4)}
 
 model = BiLSTM_uni(params)
 model.setMappings(mappings, embeddings)

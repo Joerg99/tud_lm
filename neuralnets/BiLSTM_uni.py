@@ -434,12 +434,9 @@ class BiLSTM_uni:
                 
             logging.info("%.2f sec for evaluation" % (time.time() - start_time))
             
-            #K.clear_session()
-
-
-            if self.params['earlyStopping']  > 0 and no_improvement_since >= self.params['earlyStopping']:
-                logging.info("!!! Early stopping, no improvement after "+str(no_improvement_since)+" epochs !!!")
-                break
+#             if self.params['earlyStopping']  > 0 and no_improvement_since >= self.params['earlyStopping']:
+#                 logging.info("!!! Early stopping, no improvement after "+str(no_improvement_since)+" epochs !!!")
+#                 break
             
             
     def getSentenceLengths(self, sentences):
@@ -453,14 +450,14 @@ class BiLSTM_uni:
         return sentenceLengths
             
 
-    def tagSentences_generate(self, sentences, predictions_sampled):
+    def tagSentences_generate(self, sentences, predictions_sampled, generation_mode):
         # Pad characters
         if 'characters' in self.params['featureNames']:
             self.padCharacters(sentences)
 
         labels = {}
         for modelName, model in self.models.items():
-            paddedPredLabels = self.predictLabels_generate(model, sentences, predictions_sampled)
+            paddedPredLabels = self.predictLabels_generate(model, sentences, predictions_sampled, generation_mode)
             predLabels = []
             for idx in range(len(sentences)):
                 unpaddedPredLabels = []
@@ -474,9 +471,11 @@ class BiLSTM_uni:
             labels[modelName] = [[idx2Label[tag] for tag in tagSentence] for tagSentence in predLabels]
 
         return labels
-    def predictLabels_generate(self, model, sentences, predictions_rand):
+    def predictLabels_generate(self, model, sentences, predictions_rand, generation_mode):
         predLabels = [None]*len(sentences)
         sentenceLengths = self.getSentenceLengths(sentences)
+
+        print('generation mode: ' , generation_mode)
         for indices in sentenceLengths.values():   
             nnInput = []                  
             for featureName in self.params['featureNames']:
@@ -492,8 +491,7 @@ class BiLSTM_uni:
             #predictions_alt = predictions.argmax(axis=-1) #argmax returns index, in [[i1, i2, ...]]          
             #print('prediction nach argmax: ', predictions_alt)
             
-            generation_mode = 'max'   # max oder sample
-            
+            #generation_mode = 'sample'   # 'max' oder 'sample'
             if generation_mode == 'sample':
                 ########### for sampling
                 predicted = np.random.choice(len(predictions[0][-1]), p=predictions[0][-1])
@@ -655,7 +653,6 @@ class BiLSTM_uni:
     
     def numpy_perplexity(self, all_labels, all_predictions):
         
-        print(np.shape(all_labels))
         
         all_labels_oh = []
         for k in range(len(all_labels)):
