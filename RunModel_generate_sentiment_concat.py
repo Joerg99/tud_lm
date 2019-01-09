@@ -6,8 +6,8 @@
 from __future__ import print_function
 import nltk
 from util.preprocessing import addCharInformation, createMatrices, addCasingInformation
-from neuralnets.BiLSTM import BiLSTM
-from neuralnets.BiLSTM_uni import BiLSTM_uni
+
+from neuralnets.BiLSTM_uni_sentiment_concat import BiLSTM_uni
 import sys
 import numpy as np
 import time
@@ -25,7 +25,7 @@ import keras.losses
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_9.6219_309.9963_21.h5' # with perplexity and POS label DOESNT RUN
+modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_138.2054_138.2054_5.h5' # with perplexity and POS label DOESNT RUN
 lstmModel = BiLSTM_uni.loadModel(modelPath)
 
 text = 'sos_n' #'startseq'

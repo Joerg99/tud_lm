@@ -6,7 +6,7 @@ import os
 import logging
 import sys
 from neuralnets.BiLSTM import BiLSTM
-from neuralnets.BiLSTM_uni import BiLSTM_uni
+from neuralnets.BiLSTM_uni_sentiment_concat import BiLSTM_uni
 
 from util.preprocessing import perpareDataset, loadDatasetPickle
 
@@ -45,7 +45,7 @@ logger.addHandler(ch)
 
 my_datasets = {
     'textgrid':
-        {'columns': {1:'tokens', 2:'POS'}, # 3:'sentiment'
+        {'columns': {1:'tokens', 2:'POS'}, #, 3:'sentiment'}, 
          'label': 'POS',
          'evaluate': True,
          'commentSymbol': None}
@@ -73,7 +73,7 @@ embeddings, mappings, data = loadDatasetPickle(pickleFile)
 # Some network hyperparameters
 
 ##### for perplexity add 'POS' to featureNames #######
-params = {'featureNames': ['tokens', 'casing', 'POS'], 'classifier': ['Softmax'],'charEmbeddings': None, 'optimizer': 'adam', 'LSTM-Size': [100], 'dropout': (0.4)}
+params = {'featureNames': ['tokens', 'casing', 'POS', 'sentiment'], 'classifier': ['Softmax'],'charEmbeddings': None, 'optimizer': 'adam', 'LSTM-Size': [100], 'dropout': (0.4)}
 
 model = BiLSTM_uni(params)
 model.setMappings(mappings, embeddings)

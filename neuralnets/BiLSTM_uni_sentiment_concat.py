@@ -481,10 +481,16 @@ class BiLSTM_uni:
             for featureName in self.params['featureNames']:
                 inputData = np.asarray([sentences[idx][featureName] for idx in indices])
                 nnInput.append(inputData)
+                #print(featureName)
             
-            if len(nnInput) == 3:
+            print('nn input: ', nnInput)
+            print('nn input: ', nnInput[0][0])
+            #nnInput: tokens, casing, POS, sentiment
+            
+            # set POS to zeroes with dimensions of tokens
+            if len(nnInput) >= 3:
+                nnInput[-2] = np.zeros_like(nnInput[0])
                 nnInput[-1] = np.zeros_like(nnInput[0])
-#             print(nnInput)
             
             predictions = model.predict(nnInput, verbose=False)
             #print('PREDICTIONS: ', len(predictions[0][-1])) #probabilities der letzten predicition
