@@ -78,7 +78,6 @@ model = BiLSTM_uni(params)
 model.setMappings(mappings, embeddings)
 model.setDataset(my_datasets, data)
 model.storeResults('results/textgrid_results.csv') #Path to store performance scores for dev / test
-#model.modelSavePath = "models/stanza200k_perpLoss_100_drop05/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
 model.modelSavePath = "models/init_state/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 model.fit(epochs=101)

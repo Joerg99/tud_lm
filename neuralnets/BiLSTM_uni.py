@@ -12,6 +12,7 @@ import keras
 from keras.optimizers import *
 from keras.models import Model
 from keras.layers import *
+# import matplotlib.pyplot as plt 
 import math
 import numpy as np
 import sys
@@ -212,7 +213,7 @@ class BiLSTM_uni:
                         print(perplexity)
                         return perplexity
                     
-                    lossFct = my_loss #'sparse_categorical_crossentropy'
+                    lossFct = 'sparse_categorical_crossentropy' #my_loss
                 elif classifier == 'CRF':
                     output = TimeDistributed(Dense(n_class_labels, activation=None),
                                              name=modelName + '_hidden_lin_layer')(output)
@@ -395,6 +396,9 @@ class BiLSTM_uni:
         max_test_score = {modelName:0 for modelName in self.models.keys()}
         no_improvement_since = 0
         
+        train_scores_plotting = []
+        test_scores_plotting = []
+        dev_scores_plotting = []
         for epoch in range(epochs):      
             sys.stdout.flush()           
             logging.info("\n--------- Epoch %d -----------" % (epoch+1))
@@ -409,9 +413,10 @@ class BiLSTM_uni:
             start_time = time.time() 
             for modelName in self.evaluateModelNames:
                 logging.info("-- %s --" % (modelName))
-                dev_score, test_score = self.computeScore(modelName, self.data[modelName]['devMatrix'], self.data[modelName]['testMatrix'])
-                
-                
+                train_score, dev_score, test_score = self.computeScore(modelName, self.data[modelName]['trainMatrix_eval'], self.data[modelName]['devMatrix'], self.data[modelName]['testMatrix'])
+                train_scores_plotting.append(train_score)
+                test_scores_plotting.append(test_score)
+                dev_scores_plotting.append(dev_score)
                 if dev_score > max_dev_score[modelName]:
                     max_dev_score[modelName] = dev_score
                     max_test_score[modelName] = test_score
@@ -421,9 +426,27 @@ class BiLSTM_uni:
                     no_improvement_since += 1
                     
                 #Save the model alle 4 Epochen
-                if self.modelSavePath != None and epoch % 4 == 0:
+                if self.modelSavePath != None and epoch % 2 == 0:
                     self.saveModel(modelName, epoch, dev_score, test_score)
-                    
+#                     plt.plot(train_scores_plotting, label='train')
+#                     plt.plot(test_scores_plotting, label='test')
+#                     plt.plot(dev_scores_plotting, label='dev')
+#                     plt.legend()
+#                     plt.savefig('plot_'+str(epoch)+'_'+modelName)
+#                     plt.clf()
+                    if len(train_scores_plotting) >0:
+                        with open('plot_'+str(epoch)+'_'+modelName, 'w') as file:
+                            for i in range(len(train_scores_plotting)):
+                                file.write(str(int(train_scores_plotting[i]))+' ')
+                            file.write('\n')
+                            for j in range(len(dev_scores_plotting)):
+                                file.write(str(int(dev_scores_plotting[j]))+' ')
+                            file.write('\n')
+                            for k in range(len(test_scores_plotting)):
+                                file.write(str(int(test_scores_plotting[k]))+' ')
+                            file.write('\n')
+                        
+                        
                 if self.resultsSavePath != None:
                     self.resultsSavePath.write("\t".join(map(str, [epoch + 1, modelName, dev_score, test_score, max_dev_score[modelName], max_test_score[modelName]])))
                     self.resultsSavePath.write("\n")
@@ -556,23 +579,26 @@ class BiLSTM_uni:
         
         return predLabels
    
-    def computeScore(self, modelName, devMatrix, testMatrix):
+    def computeScore(self, modelName, trainMatrix, devMatrix, testMatrix):
         if self.labelKeys[modelName].endswith('_BIO') or self.labelKeys[modelName].endswith('_IOBES') or self.labelKeys[modelName].endswith('_IOB'):
             return self.computeF1Scores(modelName, devMatrix, testMatrix)
         else:
             if 'POS' in self.params['featureNames']: #  POS needed for perplexity evaluation but would crash on accuracy
                 print('Perplexity Evaluation')
-                return self.computePerplexityScores(modelName, devMatrix, testMatrix)   
+                return self.computePerplexityScores(modelName,trainMatrix, devMatrix, testMatrix)   
             else:
                 print('Accuracy Evaluation')
-                return self.computeAccScores(modelName, devMatrix, testMatrix)   
+                return self.computeAccScores(modelName,trainMatrix, devMatrix, testMatrix)   
 
-    def computeAccScores(self, modelName, devMatrix, testMatrix):
+    def computeAccScores(self, modelName, trainMatrix, devMatrix, testMatrix):
+        train_acc = self.computeAcc(modelName, trainMatrix)
         dev_acc = self.computeAcc(modelName, devMatrix)
         test_acc = self.computeAcc(modelName, testMatrix)
+        logging.info("Train-Data: Accuracy: %.4f" % (train_acc))
         logging.info("Dev-Data: Accuracy: %.4f" % (dev_acc))
         logging.info("Test-Data: Accuracy: %.4f" % (test_acc))
         return dev_acc, test_acc 
+    
     def computeAcc(self, modelName, sentences):
         correctLabels = [sentences[idx][self.labelKeys[modelName]] for idx in range(len(sentences))]
         predLabels = self.predictLabels(self.models[modelName], sentences) 
@@ -585,12 +611,14 @@ class BiLSTM_uni:
                     numCorrLabels += 1
         return numCorrLabels/float(numLabels)
     
-    def computePerplexityScores(self, modelName, devMatrix, testMatrix):
+    def computePerplexityScores(self, modelName, trainMatrix, devMatrix, testMatrix):
+        train_acc = self.compute_perplexity(modelName, trainMatrix) # compute_perplexity
         dev_acc = self.compute_perplexity(modelName, devMatrix) # compute_perplexity
         test_acc = self.compute_perplexity(modelName, testMatrix) # compute perplexity
+        logging.info("Train-Data: Perplexity: %.4f" % (train_acc))
         logging.info("Dev-Data: Perplexity: %.4f" % (dev_acc))
         logging.info("Test-Data: Perplexity: %.4f" % (test_acc))
-        return dev_acc, test_acc   
+        return train_acc, dev_acc, test_acc   
     
     def compute_perplexity(self, modelName, sentences):
         all_labels, all_predictions = self.predictLabels_for_perplexity_evaluation(self.models[modelName], sentences)
@@ -678,7 +706,7 @@ class BiLSTM_uni:
         
         perplexities = []
         for i in range(len(all_predictions)):
-            perplexities.append(np.power(2.0, cross_entropy(all_predictions[i], all_labels_oh[i])))
+            perplexities.append(np.exp(cross_entropy(all_predictions[i], all_labels_oh[i])))
         #print('manually calulated perplexity: ', np.mean(perplexities))
         return np.mean(perplexities)
 

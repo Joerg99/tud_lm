@@ -5,7 +5,7 @@ from __future__ import print_function
 import os
 import logging
 import sys
-from neuralnets.BiLSTM import BiLSTM
+#from neuralnets.BiLSTM import BiLSTM
 from neuralnets.BiLSTM_uni import BiLSTM_uni
 
 from util.preprocessing import perpareDataset, loadDatasetPickle
@@ -80,7 +80,7 @@ model.setMappings(mappings, embeddings)
 model.setDataset(my_datasets, data)
 model.storeResults('results/textgrid_results.csv') #Path to store performance scores for dev / test
 #model.modelSavePath = "models/stanza200k_perpLoss_100_drop05/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
-model.modelSavePath = "models/test/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
+model.modelSavePath = "models/test/pos_neg_[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 model.fit(epochs=101)
 

@@ -212,7 +212,7 @@ class BiLSTM_uni:
                         print(perplexity)
                         return perplexity
                     
-                    lossFct = my_loss #'sparse_categorical_crossentropy'
+                    lossFct = 'sparse_categorical_crossentropy' #my_loss
                 elif classifier == 'CRF':
                     output = TimeDistributed(Dense(n_class_labels, activation=None),
                                              name=modelName + '_hidden_lin_layer')(output)
@@ -684,7 +684,7 @@ class BiLSTM_uni:
         
         perplexities = []
         for i in range(len(all_predictions)):
-            perplexities.append(np.power(2.0, cross_entropy(all_predictions[i], all_labels_oh[i])))
+            perplexities.append(np.exp(cross_entropy(all_predictions[i], all_labels_oh[i])))
         #print('manually calulated perplexity: ', np.mean(perplexities))
         return np.mean(perplexities)
 

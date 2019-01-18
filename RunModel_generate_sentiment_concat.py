@@ -25,11 +25,11 @@ import keras.losses
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_138.2054_138.2054_5.h5'
+modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/concat/sonnet_textgrid_1.7336_1.3422_61.h5'
 lstmModel = BiLSTM_uni.loadModel(modelPath)
 
-text = 'sos_n' #'startseq'
-generation_mode = 'sample' # 'max' or 'sample'
+text = 'gott' #'startseq'
+generation_mode = 'max' # 'max' or 'sample'
 
 predictions_sampled = [[]]
 # :: Prepare the input ::

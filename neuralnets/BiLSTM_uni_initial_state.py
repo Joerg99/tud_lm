@@ -158,7 +158,7 @@ class BiLSTM_uni:
             inputNodes.append(chars_input)
             
         # :: Task Identifier :: 
-        if self.params['useTaskIdentifier']:
+        if self.params['useTaskIdentifier']: # usually False
             self.addTaskIdentifier()
             
             taskID_input = Input(shape=(None,), dtype='int32', name='task_id_input')
@@ -182,10 +182,10 @@ class BiLSTM_uni:
         
         for size in self.params['LSTM-Size']:      
             if isinstance(self.params['dropout'], (list, tuple)):  
-                shared_layer = LSTM(size, return_sequences=True, dropout=self.params['dropout'][0], recurrent_dropout=self.params['dropout'][1])(shared_layer) #, name='shared_varLSTM_'+str(cnt))(shared_layer)
+                shared_layer = LSTM(size, initial_state= None, dropout=self.params['dropout'][0], recurrent_dropout=self.params['dropout'][1])(shared_layer, initial_state = None) #, name='shared_varLSTM_'+str(cnt))(shared_layer)
             else:
                 """ Naive dropout """
-                shared_layer = LSTM(size, return_sequences=True)(shared_layer)
+                shared_layer = LSTM(size, return_sequences=True)(shared_layer, initial_state = None )
                 if self.params['dropout'] > 0.0:
                     shared_layer = TimeDistributed(Dropout(self.params['dropout']), name='shared_dropout_'+str(self.params['dropout'])+"_"+str(cnt))(shared_layer)
             
@@ -194,7 +194,6 @@ class BiLSTM_uni:
             
         for modelName in self.modelNames: # this is only one and defined in the dataset
             output = shared_layer
-            
             modelClassifier = self.params['customClassifier'][modelName] if modelName in self.params['customClassifier'] else self.params['classifier']
 
             if not isinstance(modelClassifier, (tuple, list)):
@@ -255,7 +254,7 @@ class BiLSTM_uni:
                 opt = SGD(lr=0.1, **optimizerParams)
             
             
-            model = Model(inputs=inputNodes, outputs=[output])
+            model = Model(inputs=[inputNodes, initial_states_input], outputs=[output])
             model.compile(loss=lossFct, optimizer=opt)
             
             model.summary(line_length=125)
@@ -397,7 +396,13 @@ class BiLSTM_uni:
             logging.info("\n--------- Epoch %d -----------" % (epoch+1))
             
             start_time = time.time() 
+            
+            ########## here is the training
             self.trainModel()
+            ##########
+            
+            
+            
             time_diff = time.time() - start_time
             total_train_time += time_diff
             logging.info("%.2f sec for training (%.2f total)" % (time_diff, total_train_time))
