@@ -36,7 +36,7 @@ class BiLSTM_uni:
         
         # Hyperparameters for the network
         defaultParams = {'dropout': (0.5,0.5), 'classifier': ['Softmax'], 'LSTM-Size': (100,100), 'customClassifier': {},
-                         'optimizer': 'adam',
+                         'optimizer': 'adam', 'temperature': 1,
                          'charEmbeddings': None, 'charEmbeddingsSize': 30, 'charFilterSize': 30, 'charFilterLength': 3, 'charLSTMSize': 25, 'maxCharLength': 25,
                          'useTaskIdentifier': False, 'clipvalue': 0, 'clipnorm': 1,
                          'earlyStopping': 20, 'miniBatchSize': 32,
@@ -207,7 +207,11 @@ class BiLSTM_uni:
                 n_class_labels = len(self.mappings[self.labelKeys[modelName]])
 
                 if classifier == 'Softmax':
-                    output = TimeDistributed(Dense(n_class_labels, activation='softmax'), name=modelName+'_softmax')(output)
+                    
+                    logits_temperature = Lambda(lambda x : x / self.params['temperature'])(output)
+                    
+                    output = TimeDistributed(Dense(n_class_labels, activation='softmax'), name=modelName+'_softmax')(logits_temperature)
+                    
                     def my_loss(y_true, y_pred): # my_loss = perplexity
                         perplexity = K.exp(K.sparse_categorical_crossentropy(y_true, y_pred))
                         print(perplexity)
@@ -477,53 +481,60 @@ class BiLSTM_uni:
         # Pad characters
         if 'characters' in self.params['featureNames']:
             self.padCharacters(sentences)
-
+        
+#         print('sentences', sentences)
         labels = {}
-        for modelName, model in self.models.items():
+        for modelName, model in self.models.items(): # modelname = textgrid, immer nur ein model drin
             paddedPredLabels = self.predictLabels_generate(model, sentences, predictions_sampled, generation_mode)
+            
             predLabels = []
-            for idx in range(len(sentences)):
+            for idx in range(len(sentences)): ###### immer nur ein satz
                 unpaddedPredLabels = []
                 for tokenIdx in range(len(sentences[idx]['tokens'])):
                     if sentences[idx]['tokens'][tokenIdx] != 0:  # Skip padding tokens
                         unpaddedPredLabels.append(paddedPredLabels[idx][tokenIdx])
 
-                predLabels.append(unpaddedPredLabels)
 
+                predLabels.append(unpaddedPredLabels) # list mit indexen, 
+            
+            # CONVERT PREDLABEL INDEX TO LABEL
             idx2Label = self.idx2Labels[modelName]
             labels[modelName] = [[idx2Label[tag] for tag in tagSentence] for tagSentence in predLabels]
-
+            #print('labels ', labels)
         return labels
-    def predictLabels_generate(self, model, sentences, predictions_rand, generation_mode):
+    
+    def predictLabels_generate(self, model, sentences, predictions_sampled, generation_mode):
         predLabels = [None]*len(sentences)
-        sentenceLengths = self.getSentenceLengths(sentences)
-
-        print('generation mode: ' , generation_mode)
+        sentenceLengths = self.getSentenceLengths(sentences) # sentenceLengths for speed....
+                
         for indices in sentenceLengths.values():   
             nnInput = []                  
-            for featureName in self.params['featureNames']:
+            for featureName in self.params['featureNames']: # tokens and pos
                 inputData = np.asarray([sentences[idx][featureName] for idx in indices])
+#                 print('sentences[idx][featureName]', sentences[0][featureName])
+                
                 nnInput.append(inputData)
-            
+#             print('nnInput ', nnInput)
             if len(nnInput) == 3:
-                nnInput[-1] = np.zeros_like(nnInput[0])
-#             print(nnInput)
+                nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
+            if len(nnInput) == 2:
+                nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
             
             predictions = model.predict(nnInput, verbose=False)
-            #print('PREDICTIONS: ', len(predictions[0][-1])) #probabilities der letzten predicition
-            #predictions_alt = predictions.argmax(axis=-1) #argmax returns index, in [[i1, i2, ...]]          
-            #print('prediction nach argmax: ', predictions_alt)
+            
+            
             
             #generation_mode = 'sample'   # 'max' oder 'sample'
             if generation_mode == 'sample':
                 ########### for sampling
                 predicted = np.random.choice(len(predictions[0][-1]), p=predictions[0][-1])
-                predictions_rand[0].append(predicted)
-                print('neu: ', predictions_rand)
+                predictions_sampled[0].append(predicted)
+#                 print('neu: ', predictions_sampled)
                 predIdx = 0
                 for idx in indices:
-                    predLabels[idx] = predictions_rand[predIdx]    
+                    predLabels[idx] = predictions_sampled[predIdx]    
                     predIdx += 1   
+            
             if generation_mode == 'max':
                 ########### for argmax
                 predictions = predictions.argmax(axis=-1)
@@ -564,7 +575,6 @@ class BiLSTM_uni:
             for featureName in self.params['featureNames']:
                 inputData = np.asarray([sentences[idx][featureName] for idx in indices])
                 nnInput.append(inputData)
-            #model.evaluate()
             predictions = model.predict(nnInput, verbose=False)
             #print('PREDICTIONS: ', len(predictions[0][-1])) #probabilities der letzten predicition
             #print('prediction nach argmax: ', predictions_alt)
@@ -737,7 +747,7 @@ class BiLSTM_uni:
                 nnInput.append(inputData)
             #print('das geht in den predictor: ', inputData)    
             #print('nnInput label :', np.shape(nnInput[2]), type(nnInput))
-            all_labels.append(nnInput[2])
+            all_labels.append(nnInput[1]) # if using casing index should be two at least if order is 'tokens, casing, pos'
             predictions_softmax = model.predict(nnInput, verbose=False)
             all_preds_softmax.append(predictions_softmax)
             #print('nnOutput:', np.shape(predictions_softmax), type(predictions_softmax))
@@ -836,7 +846,7 @@ class BiLSTM_uni:
 
 
     @staticmethod
-    def loadModel(modelPath):
+    def loadModel(modelPath, temperature):
         import h5py
         import json
         from .keraslayers.ChainCRF import create_custom_objects
@@ -853,7 +863,9 @@ class BiLSTM_uni:
             params = json.loads(f.attrs['params'])
             modelName = f.attrs['modelName']
             labelKey = f.attrs['labelKey']
-
+        
+        params['temperature'] = temperature
+        
         bilstm = BiLSTM_uni(params)
         bilstm.setMappings(mappings, None)
         bilstm.models = {modelName: model}

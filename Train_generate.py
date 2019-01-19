@@ -73,7 +73,7 @@ embeddings, mappings, data = loadDatasetPickle(pickleFile)
 # Some network hyperparameters
 
 ##### for perplexity add 'POS' to featureNames #######
-params = {'featureNames': ['tokens', 'casing', 'POS'], 'classifier': ['Softmax'],'charEmbeddings': None, 'optimizer': 'adam', 'LSTM-Size': [100], 'dropout': (0.4)}
+params = {'featureNames': ['tokens', 'POS'], 'classifier': ['Softmax'],'charEmbeddings': None, 'optimizer': 'adam', 'LSTM-Size': [100], 'dropout': (0.4)}
 
 model = BiLSTM_uni(params)
 model.setMappings(mappings, embeddings)

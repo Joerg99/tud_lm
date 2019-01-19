@@ -26,55 +26,68 @@ from _operator import pos
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/250k_pos_neg_lower_64_04/textgrid_914.5579_753.4499_1.h5' # with perplexity and POS label DOESNT RUN
-lstmModel = BiLSTM_uni.loadModel(modelPath)
+modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/pos_neg_textgrid_563.7473_1185.1209_11.h5' # with perplexity and POS label DOESNT RUN
+lstmModel = BiLSTM_uni.loadModel(modelPath, 0.1)
 
-text = 'gott_n'
+start = 'ich'
+appendix = '_p'
+text = start+appendix
 generation_mode = 'sample' # 'max' or 'sample'
 
 predictions_sampled = [[]]
-# :: Prepare the input ::
 while True:
-    sentences = [{'tokens': nltk.word_tokenize(sent)} for sent in nltk.sent_tokenize(text)]
-    #print(sentences)
-    addCharInformation(sentences)
-    addCasingInformation(sentences)
+    #sentences = [{'tokens': nltk.word_tokenize(sent)} for sent in nltk.sent_tokenize(text)]
+    sentences = []
+    for sent in nltk.sent_tokenize(text):
+        word_token = nltk.word_tokenize(sent)
+        for i in range(len(word_token)):
+            if word_token[i][-2:] != appendix:
+                word_token[i] = word_token[i]+appendix
+        sentences.append({'tokens': word_token})
+                           
+    #addCharInformation(sentences)
+    #addCasingInformation(sentences)
     dataMatrix = createMatrices(sentences, lstmModel.mappings, True)
     # :: Tag the input ::
     tags = lstmModel.tagSentences_generate(dataMatrix, predictions_sampled, generation_mode)
-    #print('returned tags: ', tags)
     text +=' '+tags['textgrid'][0][-1]
     print('neuer Text: ', text)
-    if tags['textgrid'][0][-1] == 'eos_n' or tags['textgrid'][0][-1] == 'eos_p' or  tags['textgrid'][0][-1] == '<eos>' :
+    if tags['textgrid'][0][-1] == 'eos_n' or tags['textgrid'][0][-1] == 'eos_p' or  tags['textgrid'][0][-1] == '<eos>' or  tags['textgrid'][0][-1] == 'eos':
         break
     time.sleep(1)
+
+
 
 # pos_neg = [0,0]
 # for i in range(100):
 #     if i < 50:
-#         text = 'die_p'
+#         text = 'in_p'
 #     else:
-#         text = 'die_n'
+#         text = 'in_n'
 #     generation_mode = 'sample' # 'max' or 'sample'
-#     
 #     predictions_sampled = [[]]
 #     # :: Prepare the input ::
 #     while True:
-#         sentences = [{'tokens': nltk.word_tokenize(sent)} for sent in nltk.sent_tokenize(text)]
-#         #print(sentences)
-#         addCharInformation(sentences)
-#         addCasingInformation(sentences)
+#         sentences = []
+#         for sent in nltk.sent_tokenize(text):
+#             word_token = nltk.word_tokenize(sent)
+#             for i in range(len(word_token)):
+#                 if word_token[i][-2:] != appendix:
+#                     word_token[i] = word_token[i]+appendix
+#             sentences.append({'tokens': word_token})
+#                               
+#         #addCharInformation(sentences)
+#         #addCasingInformation(sentences)
 #         dataMatrix = createMatrices(sentences, lstmModel.mappings, True)
 #         # :: Tag the input ::
 #         tags = lstmModel.tagSentences_generate(dataMatrix, predictions_sampled, generation_mode)
-#         print('returned tags: ', tags)
 #         text +=' '+tags['textgrid'][0][-1]
-#         #print('neuer Text: ', text)
-#         if tags['textgrid'][0][-1] == 'eos_n' or tags['textgrid'][0][-1] == 'eos_p' or  tags['textgrid'][0][-1] == '<eos>' or len(text.split(' ')) == 30:
-#             if tags['textgrid'][0][0][-2:] == '_n':
+#         if tags['textgrid'][0][-1] == 'eos_n' or tags['textgrid'][0][-1] == 'eos_p' or  tags['textgrid'][0][-1] == '<eos>' or  tags['textgrid'][0][-1] == 'eos':
+#             print('neuer Text: ', text)
+#             if i < 50:
 #                 pos_neg[1] += len(text.split(' '))
 #             else:
 #                 pos_neg[0] += len(text.split(' '))
 #             break
-#         #time.sleep(1)
+#     #time.sleep(1)
 # print(pos_neg, pos_neg[0]/50, pos_neg[1]/50)
