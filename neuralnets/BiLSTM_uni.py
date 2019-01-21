@@ -201,16 +201,15 @@ class BiLSTM_uni:
 
             if not isinstance(modelClassifier, (tuple, list)):
                 modelClassifier = [modelClassifier]
-            
             cnt = 1
             for classifier in modelClassifier:
                 n_class_labels = len(self.mappings[self.labelKeys[modelName]])
-
+                print('n_class_labels', n_class_labels)
                 if classifier == 'Softmax':
                     
-                    logits_temperature = Lambda(lambda x : x / self.params['temperature'])(output)
+                    #logits_temperature = Lambda(lambda x : x / self.params['temperature'])(output)
                     
-                    output = TimeDistributed(Dense(n_class_labels, activation='softmax'), name=modelName+'_softmax')(logits_temperature)
+                    output = TimeDistributed(Dense(n_class_labels, activation='softmax'), name=modelName+'_softmax')(output) # without temperature input is (output)
                     
                     def my_loss(y_true, y_pred): # my_loss = perplexity
                         perplexity = K.exp(K.sparse_categorical_crossentropy(y_true, y_pred))
@@ -430,7 +429,7 @@ class BiLSTM_uni:
                     no_improvement_since += 1
                     
                 #Save the model alle 4 Epochen
-                if self.modelSavePath != None and epoch % 2 == 0:
+                if self.modelSavePath != None and epoch % 1 == 0:
                     self.saveModel(modelName, epoch, dev_score, test_score)
 #                     plt.plot(train_scores_plotting, label='train')
 #                     plt.plot(test_scores_plotting, label='test')
@@ -439,15 +438,15 @@ class BiLSTM_uni:
 #                     plt.savefig('plot_'+str(epoch)+'_'+modelName)
 #                     plt.clf()
                     if len(train_scores_plotting) >0:
-                        with open('plot_'+str(epoch)+'_'+modelName, 'w') as file:
+                        with open('models/test/plot_'+str(epoch)+'_'+modelName, 'w') as file:
                             for i in range(len(train_scores_plotting)):
-                                file.write(str(int(train_scores_plotting[i]))+' ')
+                                file.write(str(train_scores_plotting[i])+' ')
                             file.write('\n')
                             for j in range(len(dev_scores_plotting)):
-                                file.write(str(int(dev_scores_plotting[j]))+' ')
+                                file.write(str(dev_scores_plotting[j])+' ')
                             file.write('\n')
                             for k in range(len(test_scores_plotting)):
-                                file.write(str(int(test_scores_plotting[k]))+' ')
+                                file.write(str(test_scores_plotting[k])+' ')
                             file.write('\n')
                         
                         
@@ -514,14 +513,12 @@ class BiLSTM_uni:
 #                 print('sentences[idx][featureName]', sentences[0][featureName])
                 
                 nnInput.append(inputData)
-#             print('nnInput ', nnInput)
             if len(nnInput) == 3:
                 nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
             if len(nnInput) == 2:
                 nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
             
             predictions = model.predict(nnInput, verbose=False)
-            
             
             
             #generation_mode = 'sample'   # 'max' oder 'sample'
@@ -576,11 +573,8 @@ class BiLSTM_uni:
                 inputData = np.asarray([sentences[idx][featureName] for idx in indices])
                 nnInput.append(inputData)
             predictions = model.predict(nnInput, verbose=False)
-            #print('PREDICTIONS: ', len(predictions[0][-1])) #probabilities der letzten predicition
-            #print('prediction nach argmax: ', predictions_alt)
             predictions= predictions.argmax(axis=-1) #argmax returns index, in [[i1, i2, ...]]          
             
-            #predicted = np.random.choice(len(predictions[0][-1]), p=predictions[0][-1])
             
             predIdx = 0
             for idx in indices:
@@ -590,15 +584,10 @@ class BiLSTM_uni:
         return predLabels
    
     def computeScore(self, modelName, trainMatrix, devMatrix, testMatrix):
-        if self.labelKeys[modelName].endswith('_BIO') or self.labelKeys[modelName].endswith('_IOBES') or self.labelKeys[modelName].endswith('_IOB'):
-            return self.computeF1Scores(modelName, devMatrix, testMatrix)
-        else:
-            if 'POS' in self.params['featureNames']: #  POS needed for perplexity evaluation but would crash on accuracy
-                print('Perplexity Evaluation')
-                return self.computePerplexityScores(modelName,trainMatrix, devMatrix, testMatrix)   
-            else:
-                print('Accuracy Evaluation')
-                return self.computeAccScores(modelName,trainMatrix, devMatrix, testMatrix)   
+        print('Perplexity Evaluation')
+        return self.computePerplexityScores(modelName,trainMatrix, devMatrix, testMatrix)   
+#         print('Accuracy Evaluation')
+#         return self.computeAccScores(modelName,trainMatrix, devMatrix, testMatrix)   
 
     def computeAccScores(self, modelName, trainMatrix, devMatrix, testMatrix):
         train_acc = self.computeAcc(modelName, trainMatrix)
@@ -607,11 +596,13 @@ class BiLSTM_uni:
         logging.info("Train-Data: Accuracy: %.4f" % (train_acc))
         logging.info("Dev-Data: Accuracy: %.4f" % (dev_acc))
         logging.info("Test-Data: Accuracy: %.4f" % (test_acc))
-        return dev_acc, test_acc 
+        return train_acc, dev_acc, test_acc 
     
     def computeAcc(self, modelName, sentences):
         correctLabels = [sentences[idx][self.labelKeys[modelName]] for idx in range(len(sentences))]
+        print('correctLabels', len(correctLabels), correctLabels[0:5])
         predLabels = self.predictLabels(self.models[modelName], sentences) 
+        print('predLabels', predLabels[:5])
         numLabels = 0
         numCorrLabels = 0
         for sentenceId in range(len(correctLabels)):
@@ -631,10 +622,9 @@ class BiLSTM_uni:
         return train_acc, dev_acc, test_acc   
     
     def compute_perplexity(self, modelName, sentences):
-        all_labels, all_predictions = self.predictLabels_for_perplexity_evaluation(self.models[modelName], sentences)
+        all_predictions, all_labels = self.predictLabels_for_perplexity_evaluation(self.models[modelName], sentences)
         
-        
-        return self.numpy_perplexity(all_labels, all_predictions)
+        return self.numpy_perplexity(all_predictions, all_labels, modelName,  sentences)
         
 ######### OPTION 1 model.evaluate should be the best option... but not working :( 
 #         print('k')
@@ -689,17 +679,29 @@ class BiLSTM_uni:
 #         return np.mean(perplexity)
      
     
-    def numpy_perplexity(self, all_labels, all_predictions):
+    def numpy_perplexity(self, all_predictions, all_labels, modelName, sentences):
+        #correctLabels = [sentences[idx][self.labelKeys[modelName]] for idx in range(len(sentences))]
+        
+#         print('preds ', np.shape(all_predictions), ' labels ', np.shape(all_labels))
+#         print('preds ', np.shape(all_predictions[4]), ' labels ', np.shape(all_labels[4]))
+        #print(all_labels[4])
+        oh_labels = np.zeros_like(all_predictions)
         
         
         all_labels_oh = []
+        # k = Matrix in Liste
+        # i = 
         for k in range(len(all_labels)):
-            oh_labels = np.zeros_like(all_predictions[k])
             
-            for i in range(len(all_labels[k])):
-                for j in range(len(all_labels[k][i])):
-                    oh_labels[i][j][all_labels[k][i][j]] = 1
+            oh_labels = np.zeros_like(all_predictions[k])
+            #print(np.shape(oh_labels))
+            
+            for i in range(len(all_labels[k][0])): # i wählt einen Satz aus 
+                for j in range(len(all_labels[k][0][i])):
+                    oh_labels[i][j][all_labels[k][0][i][j]] = 1
+            
             all_labels_oh.append(oh_labels)
+        
             
         def cross_entropy(predictions, targets, epsilon=1e-12):
             """
@@ -717,41 +719,27 @@ class BiLSTM_uni:
         perplexities = []
         for i in range(len(all_predictions)):
             perplexities.append(np.exp(cross_entropy(all_predictions[i], all_labels_oh[i])))
-        #print('manually calulated perplexity: ', np.mean(perplexities))
+        #print('manually calculated perplexity: ', np.mean(perplexities))
         return np.mean(perplexities)
 
-        
-#########
-    
-#     def compute_perplexity_backup(self, modelName, sentences):
-#         all_labels, all_predictions = self.predictLabels_for_perplexity_evaluation(self.models[modelName], sentences)
-#         start = time.time()
-#         label_flat = [[wort] for element in all_labels for satz in element for wort in satz]
-#         predictions_flat = [wort.tolist() for element in all_predictions for satz in element for wort in satz]
-#         predictions_flat = tf.convert_to_tensor(predictions_flat)
-#         print('conv time: ', time.time() - start)
-#         perplexity = K.exp(K.sparse_categorical_crossentropy(label_flat, predictions_flat))
-#         return K.eval(perplexity).mean()
-
     def predictLabels_for_perplexity_evaluation(self, model, sentences):
-        #print(np.shape(sentences))
-        predLabels = [None]*len(sentences)
+        
         sentenceLengths = self.getSentenceLengths(sentences)
-#         print('sent len: ', sentenceLengths)
-        all_labels = []
         all_preds_softmax = []
+        all_preds_softmax_labels = []
         for indices in sentenceLengths.values():   
-            nnInput = []                  
+            nnInput = []
+            nnInput_labels = []                  
             for featureName in self.params['featureNames']:
                 inputData = np.asarray([sentences[idx][featureName] for idx in indices])
+                inputData_labels = np.asarray([sentences[idx]['POS'] for idx in indices])
                 nnInput.append(inputData)
-            #print('das geht in den predictor: ', inputData)    
-            #print('nnInput label :', np.shape(nnInput[2]), type(nnInput))
-            all_labels.append(nnInput[1]) # if using casing index should be two at least if order is 'tokens, casing, pos'
+                nnInput_labels.append(inputData_labels)
+                
             predictions_softmax = model.predict(nnInput, verbose=False)
             all_preds_softmax.append(predictions_softmax)
-            #print('nnOutput:', np.shape(predictions_softmax), type(predictions_softmax))
-        return all_labels, all_preds_softmax
+            all_preds_softmax_labels.append(nnInput_labels)
+        return all_preds_softmax, all_preds_softmax_labels
     
     def computeF1Scores(self, modelName, devMatrix, testMatrix):
         #train_pre, train_rec, train_f1 = self.computeF1(modelName, self.datasets[modelName]['trainMatrix'])
