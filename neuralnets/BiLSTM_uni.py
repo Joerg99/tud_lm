@@ -206,17 +206,17 @@ class BiLSTM_uni:
                 n_class_labels = len(self.mappings[self.labelKeys[modelName]])
                 print('n_class_labels', n_class_labels)
                 if classifier == 'Softmax':
+                    temp = self.params['temperature']
+                    logits_temperature = Lambda(lambda x : x / temp)(output)
                     
-                    #logits_temperature = Lambda(lambda x : x / self.params['temperature'])(output)
-                    
-                    output = TimeDistributed(Dense(n_class_labels, activation='softmax'), name=modelName+'_softmax')(output) # without temperature input is (output)
+                    output = TimeDistributed(Dense(n_class_labels, activation='softmax'), name=modelName+'_softmax')(logits_temperature) # without temperature input is (output)
                     
                     def my_loss(y_true, y_pred): # my_loss = perplexity
                         perplexity = K.exp(K.sparse_categorical_crossentropy(y_true, y_pred))
                         print(perplexity)
                         return perplexity
                     
-                    lossFct = 'sparse_categorical_crossentropy' #my_loss
+                    lossFct = my_loss #'sparse_categorical_crossentropy' #my_loss
                 elif classifier == 'CRF':
                     output = TimeDistributed(Dense(n_class_labels, activation=None),
                                              name=modelName + '_hidden_lin_layer')(output)
@@ -281,25 +281,48 @@ class BiLSTM_uni:
             for modelName in self.modelNames:            
                 K.set_value(self.models[modelName].optimizer.lr, self.learning_rate_updates[self.params['optimizer']][self.epoch]) 
                 
-            
-        for batch in self.minibatch_iterate_dataset():
+        loss_all_batches_train = []
+        loss_all_batches_test = []
+        loss_all_batches_dev = []
+        for batch in self.minibatch_iterate_dataset('trainMatrix'):
             for modelName in self.modelNames:         
                 nnLabels = batch[modelName][0]
                 nnInput = batch[modelName][1:]
                 self.models[modelName].train_on_batch(nnInput, nnLabels)  
-                
+
+        for batch in self.minibatch_iterate_dataset('trainMatrix'):
+            for modelName in self.modelNames:         
+                nnLabels = batch[modelName][0]
+                nnInput = batch[modelName][1:]
+                loss_all_batches_train.append(self.models[modelName].test_on_batch(nnInput, nnLabels))  #or .evaluate(....)
+        print('train loss in epoch:', self.epoch, np.mean(loss_all_batches_train))
+        
+        for batch in self.minibatch_iterate_dataset('testMatrix'):
+            for modelName in self.modelNames:         
+                nnLabels = batch[modelName][0]
+                nnInput = batch[modelName][1:]
+                loss_all_batches_test.append(self.models[modelName].test_on_batch(nnInput, nnLabels))  #or .evaluate(....)
+        print('test loss in epoch:', self.epoch, np.mean(loss_all_batches_test))
+        
+        for batch in self.minibatch_iterate_dataset('devMatrix'):
+            for modelName in self.modelNames:         
+                nnLabels = batch[modelName][0]
+                nnInput = batch[modelName][1:]
+                loss_all_batches_dev.append(self.models[modelName].test_on_batch(nnInput, nnLabels))  #or .evaluate(....)
+        print('dev loss in epoch:', self.epoch, np.mean(loss_all_batches_dev))
+        
           
 
-    def minibatch_iterate_dataset(self, modelNames = None):
+    def minibatch_iterate_dataset(self, matrixName,  modelNames = None):
         """ Create based on sentence length mini-batches with approx. the same size. Sentences and 
         mini-batch chunks are shuffled and used to the train the model """
-        
+        self.trainSentenceLengthRanges = None
         if self.trainSentenceLengthRanges == None:
             """ Create mini batch ranges """
             self.trainSentenceLengthRanges = {}
             self.trainMiniBatchRanges = {}            
             for modelName in self.modelNames:
-                trainData = self.data[modelName]['trainMatrix']
+                trainData = self.data[modelName][matrixName]
                 trainData.sort(key=lambda x:len(x['tokens'])) #Sort train matrix by sentence length
                 trainRanges = []
                 oldSentLength = len(trainData[0]['tokens'])            
@@ -341,13 +364,13 @@ class BiLSTM_uni:
         #Shuffle training data
         for modelName in modelNames:      
             #1. Shuffle sentences that have the same length
-            x = self.data[modelName]['trainMatrix']
+            x = self.data[modelName][matrixName]
             for dataRange in self.trainSentenceLengthRanges[modelName]:
                 for i in reversed(range(dataRange[0]+1, dataRange[1])):
                     # pick an element in x[:i+1] with which to exchange x[i]
                     j = random.randint(dataRange[0], i)
                     x[i], x[j] = x[j], x[i]
-               
+                
             #2. Shuffle the order of the mini batch ranges       
             random.shuffle(self.trainMiniBatchRanges[modelName])
      
@@ -364,7 +387,7 @@ class BiLSTM_uni:
             batches.clear()
             
             for modelName in modelNames:   
-                trainMatrix = self.data[modelName]['trainMatrix']
+                trainMatrix = self.data[modelName][matrixName]
                 dataRange = self.trainMiniBatchRanges[modelName][idx % len(self.trainMiniBatchRanges[modelName])] 
                 labels = np.asarray([trainMatrix[idx][self.labelKeys[modelName]] for idx in range(dataRange[0], dataRange[1])])
                 labels = np.expand_dims(labels, -1)
@@ -416,7 +439,7 @@ class BiLSTM_uni:
             start_time = time.time() 
             for modelName in self.evaluateModelNames:
                 logging.info("-- %s --" % (modelName))
-                train_score, dev_score, test_score = self.computeScore(modelName, self.data[modelName]['trainMatrix_eval'], self.data[modelName]['devMatrix'], self.data[modelName]['testMatrix'])
+                train_score, dev_score, test_score = 0, 0, 0 #self.computeScore(modelName, self.data[modelName]['trainMatrix_eval'], self.data[modelName]['devMatrix'], self.data[modelName]['testMatrix'])
                 train_scores_plotting.append(train_score)
                 test_scores_plotting.append(test_score)
                 dev_scores_plotting.append(dev_score)
@@ -513,13 +536,12 @@ class BiLSTM_uni:
 #                 print('sentences[idx][featureName]', sentences[0][featureName])
                 
                 nnInput.append(inputData)
-            if len(nnInput) == 3:
-                nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
-            if len(nnInput) == 2:
-                nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
+#             if len(nnInput) == 3:
+#                 nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
+#             if len(nnInput) == 2:
+#                 nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
             
             predictions = model.predict(nnInput, verbose=False)
-            
             
             #generation_mode = 'sample'   # 'max' oder 'sample'
             if generation_mode == 'sample':
@@ -628,12 +650,13 @@ class BiLSTM_uni:
         
 ######### OPTION 1 model.evaluate should be the best option... but not working :( 
 #         print('k')
-#         model = self.loadModel('/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_306.0884_341.7019_1.h5')
+#         model = self.loadModel('/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_1072.2056_1595.8857_3.h5', 1)
 #         print(type(model))
 #         print(model.models)
 #         model = model.models['textgrid']
 #         print('kk')
 #         model.compile(loss='sparse_categorical_crossentropy', optimizer='adam')
+        
 #         
 #         
 #         # idea is to run following code on the model compiled above... but it doesnt work

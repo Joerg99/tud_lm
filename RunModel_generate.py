@@ -26,7 +26,7 @@ from _operator import pos
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_0.0000_0.0000_4.h5' # with perplexity and POS label DOESNT RUN
+modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_1463.4375_2517.1796_21.h5' # with perplexity and POS label DOESNT RUN
 
 temperature = 1
 lstmModel = BiLSTM_uni.loadModel(modelPath, temperature)
@@ -58,15 +58,14 @@ lstmModel = BiLSTM_uni.loadModel(modelPath, temperature)
 #         break
 #     #time.sleep(1)
 
-
 pos_neg = [0,0]
 for j in range(100):
     start = 'sos'
     if j < 50:
-        appendix = '_p'
+        appendix = '_n'
         text = start+appendix
     else:
-        appendix = '_n'
+        appendix = '_p'
         text = start+appendix
     generation_mode = 'sample' # 'max' or 'sample'
     predictions_sampled = [[]]
@@ -86,7 +85,7 @@ for j in range(100):
         # :: Tag the input ::
         tags = lstmModel.tagSentences_generate(dataMatrix, predictions_sampled, generation_mode)
         text +=' '+tags['textgrid'][0][-1]
-        if tags['textgrid'][0][-1]in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags['textgrid'][0]) == 30:
+        if tags['textgrid'][0][-1]in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags['textgrid'][0]) == 300:
             print('neuer Text: ', text)
             if appendix == '_p':
                 pos_neg[0] += len(text.split(' '))

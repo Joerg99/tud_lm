@@ -10,6 +10,14 @@ from neuralnets.BiLSTM_uni import BiLSTM_uni
 
 from util.preprocessing import perpareDataset, loadDatasetPickle
 
+import keras
+import tensorflow as tf
+
+sess_config = tf.ConfigProto()
+sess_config.gpu_options.allow_growth = True
+from keras.backend.tensorflow_backend import set_session
+set_session(tf.Session(config=sess_config))
+
 
 
 # :: Change into the working dir of the script ::
@@ -57,7 +65,9 @@ my_datasets = {
 embeddingsPath = 'embedding_textgrid_300_lower_pos_neg.bin'
 
 # :: Prepares the dataset to be used with the LSTM-network. Creates and stores cPickle files in the pkl/ folder ::
-pickleFile = perpareDataset(embeddingsPath, my_datasets)
+
+
+pickleFile = perpareDataset(embeddingsPath, my_datasets) # Set reducePretrainedEmbeddings = True and padOneTokenSentence = False
 
 
 ######################################################
@@ -73,7 +83,7 @@ embeddings, mappings, data = loadDatasetPickle(pickleFile)
 # Some network hyperparameters
 
 ##### for perplexity add 'POS' to featureNames #######
-params = {'featureNames': ['tokens'], 'classifier': ['Softmax'],'charEmbeddings': None, 'optimizer': 'adam', 'LSTM-Size': [32], 'dropout': (0.2)}
+params = {'featureNames': ['tokens'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [8], 'dropout': (0.8)} #'charEmbeddings': 'LSTM'
 
 model = BiLSTM_uni(params)
 model.setMappings(mappings, embeddings)
