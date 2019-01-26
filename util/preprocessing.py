@@ -319,12 +319,12 @@ def createPklFiles(datasetFiles, mappings, cols, commentSymbol, valTransformatio
     devSentences = readCoNLL(datasetFiles[1], cols, commentSymbol, valTransformation)
     testSentences = readCoNLL(datasetFiles[2], cols, commentSymbol, valTransformation)    
     trainSentences_eval = []
-    if len(trainSentences) > 5000:
-        trainSentences_eval = trainSentences[:5000]
-        devSentences = devSentences[:5000]
-        testSentences = testSentences[:5000]
-    else:
-        trainSentences_eval = trainSentences
+#     if len(trainSentences) > 5000:
+#         trainSentences_eval = trainSentences[:5000]
+#         devSentences = devSentences[:5000]
+#         testSentences = testSentences[:5000]
+#     else:
+#         trainSentences_eval = trainSentences
    
     extendMappings(mappings, trainSentences+devSentences+testSentences)
 

@@ -53,7 +53,7 @@ logger.addHandler(ch)
 
 my_datasets = {
     'textgrid':
-        {'columns': {1:'tokens', 2:'POS'}, # 3:'sentiment'
+        {'columns': {1:'tokens', 2:'POS', 3:'side_info'}, # 3:'sentiment'
          'label': 'POS',
          'evaluate': True,
          'commentSymbol': None}
@@ -62,7 +62,7 @@ my_datasets = {
 
 # :: Path on your computer to the word embeddings. Embeddings by Komninos et al. will be downloaded automatically ::
 # embeddingsPath = 'komninos_english_embeddings.gz'
-embeddingsPath = 'embedding_textgrid_300_lower_pos_neg.bin'
+embeddingsPath = 'embedding_textgrid_300_lower.bin' #_pos_neg.bin'
 
 # :: Prepares the dataset to be used with the LSTM-network. Creates and stores cPickle files in the pkl/ folder ::
 
@@ -83,7 +83,7 @@ embeddings, mappings, data = loadDatasetPickle(pickleFile)
 # Some network hyperparameters
 
 ##### for perplexity add 'POS' to featureNames #######
-params = {'featureNames': ['tokens'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [8], 'dropout': (0.8)} #'charEmbeddings': 'LSTM'
+params = {'featureNames': ['tokens', 'side_info'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [64], 'dropout': (0.2)} #'charEmbeddings': 'LSTM'
 
 model = BiLSTM_uni(params)
 model.setMappings(mappings, embeddings)

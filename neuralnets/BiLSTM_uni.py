@@ -216,7 +216,7 @@ class BiLSTM_uni:
                         print(perplexity)
                         return perplexity
                     
-                    lossFct = my_loss #'sparse_categorical_crossentropy' #my_loss
+                    lossFct = 'sparse_categorical_crossentropy' #my_loss
                 elif classifier == 'CRF':
                     output = TimeDistributed(Dense(n_class_labels, activation=None),
                                              name=modelName + '_hidden_lin_layer')(output)
@@ -288,30 +288,32 @@ class BiLSTM_uni:
             for modelName in self.modelNames:         
                 nnLabels = batch[modelName][0]
                 nnInput = batch[modelName][1:]
+                #print('training input: ', nnInput)
                 self.models[modelName].train_on_batch(nnInput, nnLabels)  
 
         for batch in self.minibatch_iterate_dataset('trainMatrix'):
             for modelName in self.modelNames:         
                 nnLabels = batch[modelName][0]
                 nnInput = batch[modelName][1:]
-                loss_all_batches_train.append(self.models[modelName].test_on_batch(nnInput, nnLabels))  #or .evaluate(....)
+                loss_all_batches_train.append(np.exp(self.models[modelName].test_on_batch(nnInput, nnLabels)))  #or .evaluate(....)
         print('train loss in epoch:', self.epoch, np.mean(loss_all_batches_train))
         
         for batch in self.minibatch_iterate_dataset('testMatrix'):
             for modelName in self.modelNames:         
                 nnLabels = batch[modelName][0]
                 nnInput = batch[modelName][1:]
-                loss_all_batches_test.append(self.models[modelName].test_on_batch(nnInput, nnLabels))  #or .evaluate(....)
+                loss_all_batches_test.append(np.exp(self.models[modelName].test_on_batch(nnInput, nnLabels)))  #or .evaluate(....)
         print('test loss in epoch:', self.epoch, np.mean(loss_all_batches_test))
         
         for batch in self.minibatch_iterate_dataset('devMatrix'):
             for modelName in self.modelNames:         
                 nnLabels = batch[modelName][0]
                 nnInput = batch[modelName][1:]
-                loss_all_batches_dev.append(self.models[modelName].test_on_batch(nnInput, nnLabels))  #or .evaluate(....)
+                loss_all_batches_dev.append(np.exp(self.models[modelName].test_on_batch(nnInput, nnLabels)))  #or .evaluate(....)
         print('dev loss in epoch:', self.epoch, np.mean(loss_all_batches_dev))
         
-          
+        return np.mean(loss_all_batches_train), np.mean(loss_all_batches_test), np.mean(loss_all_batches_dev)
+
 
     def minibatch_iterate_dataset(self, matrixName,  modelNames = None):
         """ Create based on sentence length mini-batches with approx. the same size. Sentences and 
@@ -430,7 +432,23 @@ class BiLSTM_uni:
             logging.info("\n--------- Epoch %d -----------" % (epoch+1))
             
             start_time = time.time() 
-            self.trainModel()
+            train_score, test_score, dev_score = self.trainModel()
+            
+            train_scores_plotting.append(train_score)
+            test_scores_plotting.append(test_score)
+            dev_scores_plotting.append(dev_score)
+            
+            with open('models/test/plot_'+str(epoch)+'_'+self.evaluateModelNames[0], 'w') as file:
+                for i in range(len(train_scores_plotting)):
+                    file.write(str(train_scores_plotting[i])+' ')
+                file.write('\n')
+                for j in range(len(dev_scores_plotting)):
+                    file.write(str(dev_scores_plotting[j])+' ')
+                file.write('\n')
+                for k in range(len(test_scores_plotting)):
+                    file.write(str(test_scores_plotting[k])+' ')
+                file.write('\n')
+            
             time_diff = time.time() - start_time
             total_train_time += time_diff
             logging.info("%.2f sec for training (%.2f total)" % (time_diff, total_train_time))
@@ -439,17 +457,17 @@ class BiLSTM_uni:
             start_time = time.time() 
             for modelName in self.evaluateModelNames:
                 logging.info("-- %s --" % (modelName))
-                train_score, dev_score, test_score = 0, 0, 0 #self.computeScore(modelName, self.data[modelName]['trainMatrix_eval'], self.data[modelName]['devMatrix'], self.data[modelName]['testMatrix'])
-                train_scores_plotting.append(train_score)
-                test_scores_plotting.append(test_score)
-                dev_scores_plotting.append(dev_score)
-                if dev_score > max_dev_score[modelName]:
-                    max_dev_score[modelName] = dev_score
-                    max_test_score[modelName] = test_score
-                    no_improvement_since = 0
-
-                else:
-                    no_improvement_since += 1
+#                 train_score, dev_score, test_score = 0, 0, 0 #self.computeScore(modelName, self.data[modelName]['trainMatrix_eval'], self.data[modelName]['devMatrix'], self.data[modelName]['testMatrix'])
+#                 train_scores_plotting.append(train_score)
+#                 test_scores_plotting.append(test_score)
+#                 dev_scores_plotting.append(dev_score)
+#                 if dev_score > max_dev_score[modelName]:
+#                     max_dev_score[modelName] = dev_score
+#                     max_test_score[modelName] = test_score
+#                     no_improvement_since = 0
+# 
+#                 else:
+#                     no_improvement_since += 1
                     
                 #Save the model alle 4 Epochen
                 if self.modelSavePath != None and epoch % 1 == 0:
@@ -460,17 +478,7 @@ class BiLSTM_uni:
 #                     plt.legend()
 #                     plt.savefig('plot_'+str(epoch)+'_'+modelName)
 #                     plt.clf()
-                    if len(train_scores_plotting) >0:
-                        with open('models/test/plot_'+str(epoch)+'_'+modelName, 'w') as file:
-                            for i in range(len(train_scores_plotting)):
-                                file.write(str(train_scores_plotting[i])+' ')
-                            file.write('\n')
-                            for j in range(len(dev_scores_plotting)):
-                                file.write(str(dev_scores_plotting[j])+' ')
-                            file.write('\n')
-                            for k in range(len(test_scores_plotting)):
-                                file.write(str(test_scores_plotting[k])+' ')
-                            file.write('\n')
+
                         
                         
                 if self.resultsSavePath != None:
@@ -540,7 +548,6 @@ class BiLSTM_uni:
 #                 nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
 #             if len(nnInput) == 2:
 #                 nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
-            
             predictions = model.predict(nnInput, verbose=False)
             
             #generation_mode = 'sample'   # 'max' oder 'sample'
