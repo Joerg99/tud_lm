@@ -318,7 +318,7 @@ def createPklFiles(datasetFiles, mappings, cols, commentSymbol, valTransformatio
     trainSentences = readCoNLL(datasetFiles[0], cols, commentSymbol, valTransformation)
     devSentences = readCoNLL(datasetFiles[1], cols, commentSymbol, valTransformation)
     testSentences = readCoNLL(datasetFiles[2], cols, commentSymbol, valTransformation)    
-    trainSentences_eval = []
+#     trainSentences_eval = []
 #     if len(trainSentences) > 5000:
 #         trainSentences_eval = trainSentences[:5000]
 #         devSentences = devSentences[:5000]
@@ -346,7 +346,7 @@ def createPklFiles(datasetFiles, mappings, cols, commentSymbol, valTransformatio
 
     logging.info(":: Create Train Matrix ::")
     trainMatrix = createMatrices(trainSentences, mappings, padOneTokenSentence)
-    trainMatrix_eval = createMatrices(trainSentences_eval, mappings, padOneTokenSentence)
+#     trainMatrix_eval = createMatrices(trainSentences_eval, mappings, padOneTokenSentence)
     
     
     logging.info(":: Create Dev Matrix ::")
@@ -358,7 +358,7 @@ def createPklFiles(datasetFiles, mappings, cols, commentSymbol, valTransformatio
     
     data = {
                 'trainMatrix': trainMatrix,
-                'trainMatrix_eval': trainMatrix_eval,
+#                 'trainMatrix_eval': trainMatrix_eval,
                 'devMatrix': devMatrix,
                 'testMatrix': testMatrix
             }        

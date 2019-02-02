@@ -52,45 +52,41 @@ logger.addHandler(ch)
 # }
 
 my_datasets = {
-    'textgrid':
-        {'columns': {1:'tokens', 2:'POS', 3:'side_info'}, # 3:'sentiment'
+    'chicago':
+        {'columns': {1:'tokens', 2:'POS', 4:'side_info'}, 
          'label': 'POS',
          'evaluate': True,
          'commentSymbol': None}
 }
-
+print(my_datasets.keys())
 
 # :: Path on your computer to the word embeddings. Embeddings by Komninos et al. will be downloaded automatically ::
-# embeddingsPath = 'komninos_english_embeddings.gz'
-embeddingsPath = 'embedding_textgrid_300_lower.bin' #_pos_neg.bin'
+# embeddingsPath = 'embedding_textgrid_300_lower.bin' #_pos_neg.bin'
+embeddingsPath = 'embedding_chicago_300_lower.bin'
 
 # :: Prepares the dataset to be used with the LSTM-network. Creates and stores cPickle files in the pkl/ folder ::
-
-
 pickleFile = perpareDataset(embeddingsPath, my_datasets) # Set reducePretrainedEmbeddings = True and padOneTokenSentence = False
-
 
 ######################################################
 #
 # The training of the network starts here
 #
 ######################################################
-
-
 #Load the embeddings and the dataset
 embeddings, mappings, data = loadDatasetPickle(pickleFile)
 
 # Some network hyperparameters
 
 ##### for perplexity add 'POS' to featureNames #######
-params = {'featureNames': ['tokens', 'side_info'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [64], 'dropout': (0.2)} #'charEmbeddings': 'LSTM'
+
+params = {'featureNames': ['tokens', 'side_info'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [64], 'dropout': (0.2), 'charEmbeddings': 'LSTM'} #,'charEmbeddings': 'LSTM'}
+# params = {'featureNames': ['tokens'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [64], 'dropout': (0.2)} #,'charEmbeddings': 'LSTM'}
 
 model = BiLSTM_uni(params)
 model.setMappings(mappings, embeddings)
 model.setDataset(my_datasets, data)
 model.storeResults('results/textgrid_results.csv') #Path to store performance scores for dev / test
-#model.modelSavePath = "models/stanza200k_perpLoss_100_drop05/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
-model.modelSavePath = "models/test/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
+model.modelSavePath = "models/chicago/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 model.fit(epochs=101)
 

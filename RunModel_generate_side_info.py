@@ -6,7 +6,6 @@
 from __future__ import print_function
 import nltk
 from util.preprocessing import addCharInformation, createMatrices, addCasingInformation
-from neuralnets.BiLSTM import BiLSTM
 from neuralnets.BiLSTM_uni import BiLSTM_uni
 import sys
 import numpy as np
@@ -26,14 +25,16 @@ from _operator import pos
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_3389.5527_4625.6353_73.h5' # with perplexity and POS label DOESNT RUN
+modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/deepspeare/deepspeare_402.2879_492.8311_16.h5' # with perplexity and POS label DOESNT RUN
 # modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_0.0000_0.0000_55.h5' # with perplexity and POS label DOESNT RUN
 
+
+modelname = 'deepspeare'
 temperature = 1
 lstmModel = BiLSTM_uni.loadModel(modelPath, temperature)
 
 short_verses = []
-for _ in range(30):
+for _ in range(1):
     text = 'sos'
     generation_mode = 'sample' # 'max' or 'sample'
     predictions_sampled = [[]]
@@ -41,22 +42,23 @@ for _ in range(30):
         sentences = []
         for sent in nltk.sent_tokenize(text):
             word_token = nltk.word_tokenize(sent)
-            side_info = ["-1"] * len(word_token)
+            side_info = ["4"] * len(word_token)
             sentences.append({'tokens': word_token, 'side_info': side_info})
         
         #print('sentences: ', sentences)
         
-                               
-        #addCharInformation(sentences)
-        #addCasingInformation(sentences)
+        addCharInformation(sentences)
+        
         dataMatrix = createMatrices(sentences, lstmModel.mappings, True)
+                               
+        #addCasingInformation(sentences)
         #print('dataMatrix ', dataMatrix)
         #print(dataMatrix[0]['tokens'])
         # :: Tag the input ::
         tags = lstmModel.tagSentences_generate(dataMatrix, predictions_sampled, generation_mode)
         #print('tags ', tags)
-        text +=' '+tags['textgrid'][0][-1]
-        if tags['textgrid'][0][-1]in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags['textgrid'][0]) == 30:
+        text +=' '+tags[modelname][0][-1]
+        if tags[modelname][0][-1] in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags[modelname][0]) == 100:
             print('neuer Text: ', text)
             short_verses.append(len(text.split(' '))-1)
             break
