@@ -26,6 +26,7 @@ import tensorflow as tf
 from .keraslayers.ChainCRF import ChainCRF
 import sys
 from sklearn.metrics import log_loss
+from numpy import newaxis
 
 class BiLSTM_uni:
     def __init__(self, params=None):
@@ -116,7 +117,7 @@ class BiLSTM_uni:
                 continue
             
             if featureName == 'side_info':
-                print('K K K K K K K')
+#                 print('K K K K K K K')
                 feature_input = Input(shape=(None, 1), dtype='float32', name=featureName+'_input')
                 feature_embedding = TimeDistributed(Dense(1))(feature_input)
                 #feature_embedding = Reshape((self.params['miniBatchSize'], 1, 1))(feature_input)
@@ -295,17 +296,22 @@ class BiLSTM_uni:
         loss_all_batches_train = []
         loss_all_batches_test = []
         loss_all_batches_dev = []
+        
+        #train
         for batch in self.minibatch_iterate_dataset('trainMatrix'):
             for modelName in self.modelNames:         
                 nnLabels = batch[modelName][0]
                 nnInput = batch[modelName][1:]
-                #print('training input: ', nnInput)
+                nnInput[1] = nnInput[1][:,:,newaxis]
+#                 print('training input nnInput side info: ', np.shape(nnInput[1]) ,type(nnInput[1]))
                 self.models[modelName].train_on_batch(nnInput, nnLabels)  
 
+        #evaluate
         for batch in self.minibatch_iterate_dataset('trainMatrix'):
             for modelName in self.modelNames:         
                 nnLabels = batch[modelName][0]
                 nnInput = batch[modelName][1:]
+                nnInput[1] = nnInput[1][:,:,newaxis]
                 loss_all_batches_train.append(np.exp(self.models[modelName].test_on_batch(nnInput, nnLabels)))  #or .evaluate(....)
         print('train loss in epoch:', self.epoch, np.mean(loss_all_batches_train))
         
@@ -313,6 +319,7 @@ class BiLSTM_uni:
             for modelName in self.modelNames:         
                 nnLabels = batch[modelName][0]
                 nnInput = batch[modelName][1:]
+                nnInput[1] = nnInput[1][:,:,newaxis]
                 loss_all_batches_test.append(np.exp(self.models[modelName].test_on_batch(nnInput, nnLabels)))  #or .evaluate(....)
         print('test loss in epoch:', self.epoch, np.mean(loss_all_batches_test))
         
@@ -320,6 +327,7 @@ class BiLSTM_uni:
             for modelName in self.modelNames:         
                 nnLabels = batch[modelName][0]
                 nnInput = batch[modelName][1:]
+                nnInput[1] = nnInput[1][:,:,newaxis]
                 loss_all_batches_dev.append(np.exp(self.models[modelName].test_on_batch(nnInput, nnLabels)))  #or .evaluate(....)
         print('dev loss in epoch:', self.epoch, np.mean(loss_all_batches_dev))
         
@@ -555,10 +563,8 @@ class BiLSTM_uni:
 #                 print('sentences[idx][featureName]', sentences[0][featureName])
                 
                 nnInput.append(inputData)
-#             if len(nnInput) == 3:
-#                 nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
-#             if len(nnInput) == 2:
-#                 nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
+            
+#             print('nnInput:', nnInput)
             predictions = model.predict(nnInput, verbose=False)
             
             #generation_mode = 'sample'   # 'max' oder 'sample'
@@ -737,7 +743,7 @@ class BiLSTM_uni:
             oh_labels = np.zeros_like(all_predictions[k])
             #print(np.shape(oh_labels))
             
-            for i in range(len(all_labels[k][0])): # i wählt einen Satz aus 
+            for i in range(len(all_labels[k][0])): # i waehlt einen Satz aus 
                 for j in range(len(all_labels[k][0][i])):
                     oh_labels[i][j][all_labels[k][0][i][j]] = 1
             

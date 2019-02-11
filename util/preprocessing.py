@@ -250,8 +250,8 @@ def getCasingVocab():
     entries = ['PADDING', 'other', 'numeric', 'mainly_numeric', 'allLower', 'allUpper', 'initialUpper', 'contains_digit']
     return {entries[idx]:idx for idx in range(len(entries))}
 
-
-def createMatrices(sentences, mappings, padOneTokenSentence):
+#this one for training
+def createMatrices__train(sentences, mappings, padOneTokenSentence):
     data = []
     numTokens = 0
     numUnknownTokens = 0    
@@ -262,6 +262,73 @@ def createMatrices(sentences, mappings, padOneTokenSentence):
         row = {name: [] for name in list(mappings.keys())+['raw_tokens']}
         
         for mapping, str2Idx in mappings.items():    
+            if mapping not in sentence:
+                continue
+                    
+            for entry in sentence[mapping]:                
+                if mapping.lower() == 'tokens':
+                    numTokens += 1
+                    idx = str2Idx['UNKNOWN_TOKEN']
+                    
+                    if entry in str2Idx:
+                        idx = str2Idx[entry]
+                    elif entry.lower() in str2Idx:
+                        idx = str2Idx[entry.lower()]
+                    elif wordNormalize(entry) in str2Idx:
+                        idx = str2Idx[wordNormalize(entry)]
+                    else:
+                        numUnknownTokens += 1    
+                        missingTokens[wordNormalize(entry)] += 1
+                        
+                    row['raw_tokens'].append(entry)
+                elif mapping.lower() == 'characters':  
+                    idx = []
+                    for c in entry:
+                        if c in str2Idx:
+                            idx.append(str2Idx[c])
+                        else:
+                            idx.append(str2Idx['UNKNOWN'])                           
+                                      
+                else:
+                    idx = str2Idx[entry]
+                                    
+                row[mapping].append(idx)
+                
+#         if len(row['tokens']) == 1 and padOneTokenSentence:
+#             paddedSentences += 1
+#             for mapping, str2Idx in mappings.items():
+#                 if mapping.lower() == 'tokens':
+#                     row['tokens'].append(mappings['tokens']['PADDING_TOKEN'])
+#                     row['raw_tokens'].append('PADDING_TOKEN')
+#                 elif mapping.lower() == 'characters':
+#                     row['characters'].append([0])
+#                 else:
+#                     row[mapping].append(0)
+            
+        data.append(row)
+    
+    if numTokens > 0:           
+        logging.info("Unknown-Tokens: %.2f%%" % (numUnknownTokens/float(numTokens)*100))
+        
+    return data
+
+# this one for inference
+def createMatrices(sentences, mappings, padOneTokenSentence):
+    data = []
+    numTokens = 0
+    numUnknownTokens = 0    
+    missingTokens = FreqDist()
+    paddedSentences = 0
+#     print('sentences: ', sentences)
+    for sentence in sentences:
+        row = {name: [] for name in list(mappings.keys())+['raw_tokens']}
+        
+        for mapping, str2Idx in mappings.items():
+            if mapping == 'side_info':
+                for value in sentence['tokens']:
+                    row[mapping].append(sentence['side_info'])
+                continue
+                
             if mapping not in sentence:
                 continue
                     

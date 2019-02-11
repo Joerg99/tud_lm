@@ -6,7 +6,7 @@ import os
 import logging
 import sys
 #from neuralnets.BiLSTM import BiLSTM
-from neuralnets.BiLSTM_uni import BiLSTM_uni
+from neuralnets.BiLSTM_uni_real_value import BiLSTM_uni
 
 from util.preprocessing import perpareDataset, loadDatasetPickle
 
@@ -52,8 +52,8 @@ logger.addHandler(ch)
 # }
 
 my_datasets = {
-    'chicago':
-        {'columns': {1:'tokens', 2:'POS', 4:'side_info'}, 
+    'deepspeare':
+        {'columns': {1:'tokens', 2:'POS', 5:'side_info'}, 
          'label': 'POS',
          'evaluate': True,
          'commentSymbol': None}
@@ -62,7 +62,7 @@ print(my_datasets.keys())
 
 # :: Path on your computer to the word embeddings. Embeddings by Komninos et al. will be downloaded automatically ::
 # embeddingsPath = 'embedding_textgrid_300_lower.bin' #_pos_neg.bin'
-embeddingsPath = 'embedding_chicago_300_lower.bin'
+embeddingsPath = 'embedding_deepspeare_300_lower.bin'
 
 # :: Prepares the dataset to be used with the LSTM-network. Creates and stores cPickle files in the pkl/ folder ::
 pickleFile = perpareDataset(embeddingsPath, my_datasets) # Set reducePretrainedEmbeddings = True and padOneTokenSentence = False
