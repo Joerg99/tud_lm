@@ -5,7 +5,9 @@ from __future__ import print_function
 import os
 import logging
 import sys
-#from neuralnets.BiLSTM import BiLSTM
+
+
+# from neuralnets.BiLSTM_uni import BiLSTM_uni # side info as embedding
 from neuralnets.BiLSTM_uni_real_value import BiLSTM_uni
 
 from util.preprocessing import perpareDataset, loadDatasetPickle
@@ -43,17 +45,10 @@ logger.addHandler(ch)
 #
 ######################################################
 
-# datasets = {
-#     'unidep_pos_german':                            #Name of the dataset
-#         {'columns': {1:'tokens', 3:'POS'},   #CoNLL format for the input data. Column 1 contains tokens, column 3 contains POS information
-#          'label': 'POS',                     #Which column we like to predict
-#          'evaluate': True,                   #Should we evaluate on this task? Set true always for single task setups
-#          'commentSymbol': None}              #Lines in the input data starting with this string will be skipped. Can be used to skip comments
-# }
 
 my_datasets = {
-    'deepspeare':
-        {'columns': {1:'tokens', 2:'POS', 5:'side_info'}, 
+    'chicago':
+        {'columns': {1:'tokens', 2:'POS', 4:'side_info'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
          'label': 'POS',
          'evaluate': True,
          'commentSymbol': None}
@@ -62,7 +57,7 @@ print(my_datasets.keys())
 
 # :: Path on your computer to the word embeddings. Embeddings by Komninos et al. will be downloaded automatically ::
 # embeddingsPath = 'embedding_textgrid_300_lower.bin' #_pos_neg.bin'
-embeddingsPath = 'embedding_deepspeare_300_lower.bin'
+embeddingsPath = 'embedding_chicago_300_lower.bin'
 
 # :: Prepares the dataset to be used with the LSTM-network. Creates and stores cPickle files in the pkl/ folder ::
 pickleFile = perpareDataset(embeddingsPath, my_datasets) # Set reducePretrainedEmbeddings = True and padOneTokenSentence = False
@@ -86,7 +81,7 @@ model = BiLSTM_uni(params)
 model.setMappings(mappings, embeddings)
 model.setDataset(my_datasets, data)
 model.storeResults('results/textgrid_results.csv') #Path to store performance scores for dev / test
-model.modelSavePath = "models/chicago/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
+model.modelSavePath = "models/chicago/long_short/real_value_multiple/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 model.fit(epochs=101)
 

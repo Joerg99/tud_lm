@@ -250,8 +250,9 @@ def getCasingVocab():
     entries = ['PADDING', 'other', 'numeric', 'mainly_numeric', 'allLower', 'allUpper', 'initialUpper', 'contains_digit']
     return {entries[idx]:idx for idx in range(len(entries))}
 
-#this one for training
-def createMatrices__train(sentences, mappings, padOneTokenSentence):
+# unchanged
+#this one for training on both options (side info as real value or embedding) and inferecence with side info as embeddings
+def createMatrices(sentences, mappings, padOneTokenSentence):
     data = []
     numTokens = 0
     numUnknownTokens = 0    
@@ -312,8 +313,10 @@ def createMatrices__train(sentences, mappings, padOneTokenSentence):
         
     return data
 
-# this one for inference
-def createMatrices(sentences, mappings, padOneTokenSentence):
+
+
+# this one for inference with side_info as real value 
+def createMatrices__side_info_real_value(sentences, mappings, padOneTokenSentence):
     data = []
     numTokens = 0
     numUnknownTokens = 0    
@@ -385,13 +388,6 @@ def createPklFiles(datasetFiles, mappings, cols, commentSymbol, valTransformatio
     trainSentences = readCoNLL(datasetFiles[0], cols, commentSymbol, valTransformation)
     devSentences = readCoNLL(datasetFiles[1], cols, commentSymbol, valTransformation)
     testSentences = readCoNLL(datasetFiles[2], cols, commentSymbol, valTransformation)    
-#     trainSentences_eval = []
-#     if len(trainSentences) > 5000:
-#         trainSentences_eval = trainSentences[:5000]
-#         devSentences = devSentences[:5000]
-#         testSentences = testSentences[:5000]
-#     else:
-#         trainSentences_eval = trainSentences
    
     extendMappings(mappings, trainSentences+devSentences+testSentences)
 
@@ -413,7 +409,6 @@ def createPklFiles(datasetFiles, mappings, cols, commentSymbol, valTransformatio
 
     logging.info(":: Create Train Matrix ::")
     trainMatrix = createMatrices(trainSentences, mappings, padOneTokenSentence)
-#     trainMatrix_eval = createMatrices(trainSentences_eval, mappings, padOneTokenSentence)
     
     
     logging.info(":: Create Dev Matrix ::")
@@ -425,7 +420,6 @@ def createPklFiles(datasetFiles, mappings, cols, commentSymbol, valTransformatio
     
     data = {
                 'trainMatrix': trainMatrix,
-#                 'trainMatrix_eval': trainMatrix_eval,
                 'devMatrix': devMatrix,
                 'testMatrix': testMatrix
             }        

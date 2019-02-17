@@ -116,11 +116,11 @@ class BiLSTM_uni:
             if featureName == 'tokens' or featureName == 'characters':
                 continue
             
-            if featureName == 'side_info':
+            if featureName.startswith('side_info'):
+                print(featureName)
 #                 print('K K K K K K K')
                 feature_input = Input(shape=(None, 1), dtype='float32', name=featureName+'_input')
-                feature_embedding = TimeDistributed(Dense(1))(feature_input)
-                #feature_embedding = Reshape((self.params['miniBatchSize'], 1, 1))(feature_input)
+                feature_embedding = TimeDistributed(Dense(1), name=featureName+'_input_embedding')(feature_input)
                  
                 inputNodes.append(feature_input)
                 mergeInputLayers.append(feature_embedding)
@@ -541,9 +541,11 @@ class BiLSTM_uni:
                 unpaddedPredLabels = []
                 for tokenIdx in range(len(sentences[idx]['tokens'])):
                     if sentences[idx]['tokens'][tokenIdx] != 0:  # Skip padding tokens
-                        unpaddedPredLabels.append(paddedPredLabels[idx][tokenIdx])
-
-
+                        try:
+                            unpaddedPredLabels.append(paddedPredLabels[idx][tokenIdx])
+                        except:
+                            print('bleep')
+                            break
                 predLabels.append(unpaddedPredLabels) # list mit indexen, 
             
             # CONVERT PREDLABEL INDEX TO LABEL

@@ -115,14 +115,14 @@ class BiLSTM_uni:
             if featureName == 'tokens' or featureName == 'characters':
                 continue
             
-            if featureName == 'side_info':
-                print('K K K K K K K')
-                feature_input = Input(shape=(None, 1), dtype='float32', name=featureName+'_input')
-                feature_embedding = TimeDistributed(Dense(1))(feature_input)
-                #feature_embedding = Reshape((self.params['miniBatchSize'], 1, 1))(feature_input)
-                 
-                inputNodes.append(feature_input)
-                mergeInputLayers.append(feature_embedding)
+#             if featureName == 'side_info':
+#                 print('K K K K K K K')
+#                 feature_input = Input(shape=(None, 1), dtype='float32', name=featureName+'_input')
+#                 feature_embedding = TimeDistributed(Dense(1))(feature_input)
+#                 #feature_embedding = Reshape((self.params['miniBatchSize'], 1, 1))(feature_input)
+#                  
+#                 inputNodes.append(feature_input)
+#                 mergeInputLayers.append(feature_embedding)
                  
             else:                
                 feature_input = Input(shape=(None,), dtype='int32', name=featureName+'_input')
@@ -533,6 +533,11 @@ class BiLSTM_uni:
                 unpaddedPredLabels = []
                 for tokenIdx in range(len(sentences[idx]['tokens'])):
                     if sentences[idx]['tokens'][tokenIdx] != 0:  # Skip padding tokens
+                        try:
+                            unpaddedPredLabels.append(paddedPredLabels[idx][tokenIdx])
+                        except:
+                            print('bleep')
+                            break
                         unpaddedPredLabels.append(paddedPredLabels[idx][tokenIdx])
 
 
