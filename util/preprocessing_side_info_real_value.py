@@ -43,7 +43,9 @@ def perpareDataset(embeddingsPath, datasets, frequencyThresholdUnknownTokens=50,
     
     mappings = {'tokens': word2Idx, 'casing': casing2Idx}
     pklObjects = {'embeddings': embeddings, 'mappings': mappings, 'datasets': datasets, 'data': {}}
-
+    
+    print('mapping keys in prepare datasets: ', mappings.keys()) # only token and casing
+    
     for datasetName, dataset in datasets.items():
         datasetColumns = dataset['columns']
         commentSymbol = dataset['commentSymbol']
@@ -289,8 +291,12 @@ def createMatrices(sentences, mappings, padOneTokenSentence):
                             idx.append(str2Idx[c])
                         else:
                             idx.append(str2Idx['UNKNOWN'])                           
-                                      
+                
                 else:
+#                     if mapping == 'side_info':
+#                         print('the mapping: ', mapping)
+#                         print('entry: ', entry)
+#                         print('str2idx[entry]: ', str2Idx[entry])
                     idx = str2Idx[entry]
                                     
                 row[mapping].append(idx)
@@ -438,11 +444,10 @@ def extendMappings(mappings, sentences):
 
             for item in sentence[name]:              
                 if item not in mappings[name]:
-                    mappings[name][item] = len(mappings[name])
-
-
-
-    
+                    if name.startswith('side_info'):
+                        mappings[name][item] = item
+                    else:
+                        mappings[name][item] = len(mappings[name])
 
 def getEmbeddings(name):
     if not os.path.isfile(name):

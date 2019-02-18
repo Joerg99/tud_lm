@@ -5,7 +5,7 @@
 # For pretrained models see docs/Pretrained_Models.md
 from __future__ import print_function
 import nltk
-from util.preprocessing import addCharInformation, createMatrices, addCasingInformation
+from util.preprocessing_side_info_embedding import addCharInformation, createMatrices, addCasingInformation
 from neuralnets.BiLSTM_uni import BiLSTM_uni
 import sys
 import numpy as np
@@ -26,7 +26,7 @@ from warnings import catch_warnings
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/chicago/long_short/embedding/chicago_565.4536_8366.2207_85.h5' # with perplexity and POS label DOESNT RUN
+modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/chicago/allit/embedding/chicago_467.0563_492.9223_46.h5' # with perplexity and POS label DOESNT RUN
 # modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_0.0000_0.0000_55.h5' # with perplexity and POS label DOESNT RUN
 
 
@@ -34,8 +34,8 @@ modelname = 'chicago'
 temperature = 1
 lstmModel = BiLSTM_uni.loadModel(modelPath, temperature)
 
-# for s_info in [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]:
-for s_info in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]:
+for s_info in [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0, 14.0, 15.0, 16.0]:
+# for s_info in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]:
     try:
         i=0
         quatrains = []
@@ -66,7 +66,7 @@ for s_info in [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16]:
                     quatrains.append(text)
                     i+=1
                     break
-        with open('evaluation_files/'+modelname+'/long_short/embedding/'+modelname+str(s_info), 'w') as file:
+        with open('evaluation_files/'+modelname+'/alliteration/embedding/'+modelname+str(s_info), 'w') as file:
             for quatrain in quatrains:
                 file.write('%s \n' %quatrain)
     except Exception as e:

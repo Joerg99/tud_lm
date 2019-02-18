@@ -303,6 +303,9 @@ class BiLSTM_uni:
                 nnLabels = batch[modelName][0]
                 nnInput = batch[modelName][1:]
                 nnInput[1] = nnInput[1][:,:,newaxis]
+#                 print('Input of model 0: ', nnInput[0]) # tokens
+#                 print('Input of model 1: ', nnInput[1]) # side info
+#                 print('Input of model 2: ', nnInput[2]) # char embedding
 #                 print('training input nnInput side info: ', np.shape(nnInput[1]) ,type(nnInput[1]))
                 self.models[modelName].train_on_batch(nnInput, nnLabels)  
 
@@ -566,7 +569,7 @@ class BiLSTM_uni:
                 
                 nnInput.append(inputData)
             
-#             print('nnInput:', nnInput)
+#             print('nnInput:', nnInput[1])
             predictions = model.predict(nnInput, verbose=False)
             
             #generation_mode = 'sample'   # 'max' oder 'sample'

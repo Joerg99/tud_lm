@@ -5,7 +5,7 @@
 # For pretrained models see docs/Pretrained_Models.md
 from __future__ import print_function
 import nltk
-from util.preprocessing import addCharInformation, createMatrices__side_info_real_value, addCasingInformation
+from util.preprocessing_side_info_real_value import addCharInformation, createMatrices__side_info_real_value, addCasingInformation
 
 from neuralnets.BiLSTM_uni_real_value import BiLSTM_uni
 import sys
@@ -26,18 +26,19 @@ from numpy import newaxis
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/chicago/long_short/real_value/chicago_457.6837_487.7590_32.h5' # with perplexity and POS label DOESNT RUN
+modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/chicago/allit/real_value/chicago_442.9203_465.2058_20.h5' # with perplexity and POS label DOESNT RUN
 
 
 modelname = 'chicago'
 temperature = 1
 lstmModel = BiLSTM_uni.loadModel(modelPath, temperature)
 
-for rhyme_level in [0.0, 0.2, 0.4, 0.6, 0.8, 1, 2, 4, 8, 16]:
+# for rhyme_level in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7 , 0.8, 0.9, 1, 2]:
+for rhyme_level in [0.4, 0.5, 0.6, 0.7 , 0.8, 0.9, 1, 2]:
 # for rhyme_level in [32.0, 64.0, 128.0]:
     i=0
     quatrains = []
-    while i < 100:
+    while i < 1000:
         text = 'sos'
         generation_mode = 'sample' # 'max' or 'sample'
         predictions_sampled = [[]]
@@ -67,7 +68,7 @@ for rhyme_level in [0.0, 0.2, 0.4, 0.6, 0.8, 1, 2, 4, 8, 16]:
                 quatrains.append(text)
                 i+=1
                 break
-    with open('evaluation_files/'+modelname+'/long_short/'+modelname+str(rhyme_level), 'w') as file:
+    with open('evaluation_files/'+modelname+'/alliteration/real_value/'+modelname+str(rhyme_level), 'w') as file:
         for quatrain in quatrains:
             file.write('%s \n' %quatrain)
     
