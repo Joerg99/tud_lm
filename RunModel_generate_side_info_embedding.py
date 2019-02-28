@@ -13,6 +13,12 @@ import time
 import keras.losses
 from _operator import pos
 from warnings import catch_warnings
+import tensorflow as tf
+
+sess_config = tf.ConfigProto()
+sess_config.gpu_options.allow_growth = True
+from keras.backend.tensorflow_backend import set_session
+set_session(tf.Session(config=sess_config))
 
 
 # if len(sys.argv) < 3:
@@ -26,7 +32,7 @@ from warnings import catch_warnings
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/chicago/allit/embedding/chicago_467.0563_492.9223_46.h5' # with perplexity and POS label DOESNT RUN
+modelPath = 'models/chicago/allit/embedding/chicago_467.0563_492.9223_46.h5' # with perplexity and POS label DOESNT RUN
 # modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_0.0000_0.0000_55.h5' # with perplexity and POS label DOESNT RUN
 
 
@@ -39,7 +45,7 @@ for s_info in [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.
     try:
         i=0
         quatrains = []
-        while i < 100:
+        while i < 1000:
             text = 'sos'
             generation_mode = 'sample' # 'max' or 'sample'
             predictions_sampled = [[]]
@@ -62,9 +68,10 @@ for s_info in [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.
                 #print('tags ', tags)
                 text +=' '+tags[modelname][0][-1]
                 if tags[modelname][0][-1] in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags[modelname][0]) == 100:
-                    print('neuer Text: ', text)
+#                     print('neuer Text: ', text)
                     quatrains.append(text)
                     i+=1
+                    print(i)
                     break
         with open('evaluation_files/'+modelname+'/alliteration/embedding/'+modelname+str(s_info), 'w') as file:
             for quatrain in quatrains:

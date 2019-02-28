@@ -8,13 +8,13 @@ import sys
 
 
 ########## EMBEDDING #############
-from neuralnets.BiLSTM_uni import BiLSTM_uni # side info as embedding
-from util.preprocessing_side_info_embedding import perpareDataset, loadDatasetPickle
+# from neuralnets.BiLSTM_uni import BiLSTM_uni # side info as embedding
+# from util.preprocessing_side_info_embedding import perpareDataset, loadDatasetPickle
 
 
 ########## REAL VALUE #############
-# from neuralnets.BiLSTM_uni_real_value import BiLSTM_uni
-# from util.preprocessing_side_info_real_value import perpareDataset, loadDatasetPickle
+from neuralnets.BiLSTM_uni_real_value import BiLSTM_uni
+from util.preprocessing_side_info_real_value import perpareDataset, loadDatasetPickle
 
 
 import keras
@@ -53,7 +53,7 @@ logger.addHandler(ch)
 
 my_datasets = {
     'chicago':
-        {'columns': {1:'tokens', 2:'POS', 3:'side_info'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
+        {'columns': {1:'tokens', 2:'POS', 6:'side_info'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
          'label': 'POS',
          'evaluate': True,
          'commentSymbol': None}
@@ -86,7 +86,7 @@ model = BiLSTM_uni(params)
 model.setMappings(mappings, embeddings)
 model.setDataset(my_datasets, data)
 model.storeResults('results/textgrid_results.csv') #Path to store performance scores for dev / test
-model.modelSavePath = "models/chicago/allit/embedding/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
+model.modelSavePath = "models/chicago/rhyme/real_value/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 model.fit(epochs=101)
 

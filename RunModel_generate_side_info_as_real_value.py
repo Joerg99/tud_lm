@@ -13,6 +13,12 @@ import numpy as np
 import time
 import keras.losses
 from numpy import newaxis
+import tensorflow as tf
+
+sess_config = tf.ConfigProto()
+sess_config.gpu_options.allow_growth = True
+from keras.backend.tensorflow_backend import set_session
+set_session(tf.Session(config=sess_config))
 
 
 # if len(sys.argv) < 3:
@@ -26,7 +32,7 @@ from numpy import newaxis
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/chicago/allit/real_value/chicago_442.9203_465.2058_20.h5' # with perplexity and POS label DOESNT RUN
+modelPath = 'models/chicago/allit/real_value/chicago_442.9203_465.2058_20.h5' # with perplexity and POS label DOESNT RUN
 
 
 modelname = 'chicago'
@@ -34,11 +40,12 @@ temperature = 1
 lstmModel = BiLSTM_uni.loadModel(modelPath, temperature)
 
 # for rhyme_level in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7 , 0.8, 0.9, 1, 2]:
-for rhyme_level in [0.4, 0.5, 0.6, 0.7 , 0.8, 0.9, 1, 2]:
-# for rhyme_level in [32.0, 64.0, 128.0]:
+for s_info in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2]:
+# for s_info in [32.0, 64.0, 128.0]:
+    print('starting')
     i=0
     quatrains = []
-    while i < 1000:
+    while i < 50:
         text = 'sos'
         generation_mode = 'sample' # 'max' or 'sample'
         predictions_sampled = [[]]
@@ -48,7 +55,7 @@ for rhyme_level in [0.4, 0.5, 0.6, 0.7 , 0.8, 0.9, 1, 2]:
                 word_token = nltk.word_tokenize(sent)
     #             side_info = [[4]] * len(word_token)
     #             side_info = side_info[:,:,newaxis]
-                side_info = [rhyme_level]
+                side_info = [s_info]
     #             print(type(side_info), np.shape(side_info), side_info)
                 sentences.append({'tokens': word_token, 'side_info': side_info})
             
@@ -64,14 +71,15 @@ for rhyme_level in [0.4, 0.5, 0.6, 0.7 , 0.8, 0.9, 1, 2]:
             #print('tags ', tags)
             text +=' '+tags[modelname][0][-1]
             if tags[modelname][0][-1] in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags[modelname][0]) == 100:
-                print('neuer Text: ', text)
+#                 print('neuer Text: ', text)
                 quatrains.append(text)
                 i+=1
                 break
-    with open('evaluation_files/'+modelname+'/alliteration/real_value/'+modelname+str(rhyme_level), 'w') as file:
+    with open('evaluation_files/'+modelname+'/sentiment/real_value/'+modelname+str(s_info), 'w') as file:
         for quatrain in quatrains:
             file.write('%s \n' %quatrain)
-    
+    print('wrote a file')
+    time.sleep(60)
     
 
 
