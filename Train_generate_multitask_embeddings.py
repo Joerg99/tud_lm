@@ -51,19 +51,36 @@ logger.addHandler(ch)
 ######################################################
 
 
+# my_datasets = {
+#     'chicago_mtl1':
+#         {'columns': {1:'tokens', 2:'POS', 3:'side_info'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
+#          'label': 'POS',
+#          'evaluate': True,
+#          'commentSymbol': None},
+#     'chicago_mtl2':
+#         {'columns': {1:'tokens', 3:'BIO', 4:'side_info'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
+#          'label': 'BIO',
+#          'evaluate': True,
+#          'commentSymbol': None}
+# }
 my_datasets = {
     'chicago_mtl1':
-        {'columns': {1:'tokens', 2:'POS', 3:'side_info'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
+        {'columns': {1:'tokens', 2:'POS', 3:'side_info_allit', 5:'side_info_rhyme'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
          'label': 'POS',
          'evaluate': True,
          'commentSymbol': None},
     'chicago_mtl2':
-        {'columns': {1:'tokens', 3:'BIO', 4:'side_info'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
+        {'columns': {1:'tokens', 3:'BIO', 4:'side_info_allit', 5:'side_info_rhyme'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
          'label': 'BIO',
          'evaluate': True,
+         'commentSymbol': None},
+    'chicago_mtl3':
+        {'columns': {1:'tokens', 6:'RHYME', 4:'side_info_allit', 5:'side_info_rhyme'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
+         'label': 'RHYME',
+         'evaluate': True,
          'commentSymbol': None}
-        
 }
+
 print(my_datasets.keys())
 
 # :: Path on your computer to the word embeddings. Embeddings by Komninos et al. will be downloaded automatically ::
@@ -85,8 +102,8 @@ embeddings, mappings, data = loadDatasetPickle(pickleFile)
 
 ##### for perplexity add 'POS' to featureNames #######
 
-params = {'featureNames': ['tokens', 'side_info'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [64], 'dropout': (0.2), 'charEmbeddings': 'LSTM'} #,'charEmbeddings': 'LSTM'}
-# params = {'featureNames': ['tokens'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [64], 'dropout': (0.2)} #,'charEmbeddings': 'LSTM'}
+params = {'featureNames': ['tokens', 'side_info_allit', 'side_info_rhyme'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [64], 'dropout': (0.2), 'charEmbeddings': 'LSTM'} #,'charEmbeddings': 'LSTM'}
+# params = {'featureNames': ['tokens', 'side_info'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [64], 'dropout': (0.2), 'charEmbeddings': 'LSTM'} #,'charEmbeddings': 'LSTM'}
 
 model = BiLSTM_uni(params)
 model.setMappings(mappings, embeddings)

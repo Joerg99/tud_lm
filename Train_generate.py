@@ -8,13 +8,13 @@ import sys
 
 
 ########## EMBEDDING #############
-# from neuralnets.BiLSTM_uni import BiLSTM_uni # side info as embedding
-# from util.preprocessing_side_info_embedding import perpareDataset, loadDatasetPickle
+from neuralnets.BiLSTM_uni import BiLSTM_uni # side info as embedding
+from util.preprocessing_side_info_embedding import perpareDataset, loadDatasetPickle
 
 
 ########## REAL VALUE #############
-from neuralnets.BiLSTM_uni_real_value import BiLSTM_uni
-from util.preprocessing_side_info_real_value import perpareDataset, loadDatasetPickle
+# from neuralnets.BiLSTM_uni_real_value import BiLSTM_uni
+# from util.preprocessing_side_info_real_value import perpareDataset, loadDatasetPickle
 
 
 import keras

@@ -32,7 +32,7 @@ set_session(tf.Session(config=sess_config))
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = 'models/chicago/allit/real_value/chicago_442.9203_465.2058_20.h5' # with perplexity and POS label DOESNT RUN
+modelPath = 'models/chicago/allit/real_value/chicago_442.9203_465.2058_20.h5' 
 
 
 modelname = 'chicago'
@@ -71,7 +71,7 @@ for s_info in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2]:
             #print('tags ', tags)
             text +=' '+tags[modelname][0][-1]
             if tags[modelname][0][-1] in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags[modelname][0]) == 100:
-#                 print('neuer Text: ', text)
+                print('neuer Text: ', text)
                 quatrains.append(text)
                 i+=1
                 break
