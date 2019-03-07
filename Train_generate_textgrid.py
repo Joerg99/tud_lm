@@ -52,8 +52,8 @@ logger.addHandler(ch)
 
 
 my_datasets = {
-    'chicago':
-        {'columns': {1:'tokens', 2:'POS', 3:'side_info'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
+    'textgrid':
+        {'columns': {1:'tokens', 2:'POS', 4:'side_info'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
          'label': 'POS',
          'evaluate': True,
          'commentSymbol': None}
@@ -62,7 +62,7 @@ print(my_datasets.keys())
 
 # :: Path on your computer to the word embeddings. Embeddings by Komninos et al. will be downloaded automatically ::
 # embeddingsPath = 'embedding_textgrid_300_lower.bin' #_pos_neg.bin'
-embeddingsPath = 'embedding_chicago_300_lower.bin'
+embeddingsPath = 'embedding_textgrid_thomas_300_lower.bin'
 
 # :: Prepares the dataset to be used with the LSTM-network. Creates and stores cPickle files in the pkl/ folder ::
 pickleFile = perpareDataset(embeddingsPath, my_datasets) # Set reducePretrainedEmbeddings = True and padOneTokenSentence = False
@@ -79,14 +79,14 @@ embeddings, mappings, data = loadDatasetPickle(pickleFile)
 
 ##### for perplexity add 'POS' to featureNames #######
 
-params = {'featureNames': ['tokens', 'side_info'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [64], 'dropout': (0.2), 'charEmbeddings': 'LSTM'} #,'charEmbeddings': 'LSTM'}
+params = {'featureNames': ['tokens', 'side_info'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [512], 'dropout': (0.2), 'charEmbeddings': 'LSTM'} #,'charEmbeddings': 'LSTM'}
 # params = {'featureNames': ['tokens'], 'classifier': ['Softmax'], 'optimizer': 'adam', 'LSTM-Size': [64], 'dropout': (0.2)} #,'charEmbeddings': 'LSTM'}
 
 model = BiLSTM_uni(params)
 model.setMappings(mappings, embeddings)
 model.setDataset(my_datasets, data)
 model.storeResults('results/textgrid_results.csv') #Path to store performance scores for dev / test
-model.modelSavePath = "models/chicago/real_value_relative_allit/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
+model.modelSavePath = "models/textgrid/real_value_sentiment/[ModelName]_[DevScore]_[TestScore]_[Epoch].h5" #Path to store models
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3' 
 model.fit(epochs=101)
 

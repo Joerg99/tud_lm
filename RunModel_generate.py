@@ -5,13 +5,12 @@
 # For pretrained models see docs/Pretrained_Models.md
 from __future__ import print_function
 import nltk
-from util.preprocessing import addCharInformation, createMatrices, addCasingInformation
-from neuralnets.BiLSTM_uni import BiLSTM_uni
+from util.preprocessing_normal import addCharInformation, createMatrices, addCasingInformation
+from neuralnets.BiLSTM_uni_simple_generation import BiLSTM_uni
 import sys
 import numpy as np
 import time
 import keras.losses
-from _operator import pos
 
 
 # if len(sys.argv) < 3:
@@ -25,34 +24,34 @@ from _operator import pos
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/deepspeare/deepspeare_2310.1426_524.0836_23.h5' # with perplexity and POS label DOESNT RUN
+modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/chicago/unconditioned/chicago_35.h5' # with perplexity and POS label DOESNT RUN
 
-modelname = 'deepspeare'
+modelname = 'chicago'
 
 temperature = 1
 lstmModel = BiLSTM_uni.loadModel(modelPath, temperature)
 
-text = 'sos'
-generation_mode = 'sample' # 'max' or 'sample'
- 
-predictions_sampled = [[]]
-while True:
-    #sentences = [{'tokens': nltk.word_tokenize(sent)} for sent in nltk.sent_tokenize(text)]
-    sentences = []
-    for sent in nltk.sent_tokenize(text):
-        word_token = nltk.word_tokenize(sent)
-        sentences.append({'tokens': word_token})
-                            
-    #addCharInformation(sentences)
-    #addCasingInformation(sentences)
-    dataMatrix = createMatrices(sentences, lstmModel.mappings, True)
-    # :: Tag the input ::
-    tags = lstmModel.tagSentences_generate(dataMatrix, predictions_sampled, generation_mode)
-    text +=' '+tags[modelname][0][-1]
-    if tags[modelname][0][-1]in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags[modelname][0]) == 30:
-        print('neuer Text: ', text)
-        break
-
+for _ in range(30):
+    text = 'sos'
+    generation_mode = 'sample' # 'max' or 'sample'
+    predictions_sampled = [[]]
+    while True:
+        #sentences = [{'tokens': nltk.word_tokenize(sent)} for sent in nltk.sent_tokenize(text)]
+        sentences = []
+        for sent in nltk.sent_tokenize(text):
+            word_token = nltk.word_tokenize(sent)
+            sentences.append({'tokens': word_token})
+                                
+        addCharInformation(sentences)
+        #addCasingInformation(sentences)
+        dataMatrix = createMatrices(sentences, lstmModel.mappings, True)
+        # :: Tag the input ::
+        tags = lstmModel.tagSentences_generate(dataMatrix, predictions_sampled, generation_mode)
+        text +=' '+tags[modelname][0][-1]
+        if tags[modelname][0][-1]in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags[modelname][0]) == 100:
+            print('neuer Text: ', text)
+            break
+        
 
 
 def run_with_pos_neg_embeddings():

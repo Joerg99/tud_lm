@@ -32,20 +32,25 @@ set_session(tf.Session(config=sess_config))
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = 'models/chicago/allit/real_value/chicago_442.9203_465.2058_20.h5' 
+modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/chicago/real_value_relative_allit/chicago_498.2776_508.7411_65.h5' 
 
 
 modelname = 'chicago'
+
+
+
+
+i=0
 temperature = 1
 lstmModel = BiLSTM_uni.loadModel(modelPath, temperature)
-
-# for rhyme_level in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7 , 0.8, 0.9, 1, 2]:
+ 
+# for s_info in [-2, -1, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2]:
+# for s_info in [0.0]:
 for s_info in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2]:
-# for s_info in [32.0, 64.0, 128.0]:
     print('starting')
     i=0
     quatrains = []
-    while i < 50:
+    while i < 100:
         text = 'sos'
         generation_mode = 'sample' # 'max' or 'sample'
         predictions_sampled = [[]]
@@ -58,11 +63,11 @@ for s_info in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2]:
                 side_info = [s_info]
     #             print(type(side_info), np.shape(side_info), side_info)
                 sentences.append({'tokens': word_token, 'side_info': side_info})
-            
+             
             addCharInformation(sentences)
-            
+             
             dataMatrix = createMatrices__side_info_real_value(sentences, lstmModel.mappings, True)
-                                   
+                                    
             #addCasingInformation(sentences)
             #print('dataMatrix ', dataMatrix)
             #print(dataMatrix[0]['tokens'])
@@ -75,11 +80,11 @@ for s_info in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2]:
                 quatrains.append(text)
                 i+=1
                 break
-    with open('evaluation_files/'+modelname+'/sentiment/real_value/'+modelname+str(s_info), 'w') as file:
+    with open('evaluation_files/'+modelname+'/real_value_relative_allit/'+modelname+str(s_info), 'w') as file:
         for quatrain in quatrains:
             file.write('%s \n' %quatrain)
     print('wrote a file')
-    time.sleep(60)
+#     time.sleep(60)
     
 
 

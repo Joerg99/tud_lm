@@ -32,29 +32,34 @@ set_session(tf.Session(config=sess_config))
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = 'models/chicago/mtl/chicago_mtl1_246.0733_235.5047_3.h5' # with perplexity and POS label DOESNT RUN
-# modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/test/textgrid_0.0000_0.0000_55.h5' # with perplexity and POS label DOESNT RUN
+modelPath = 'models/chicago/mtl/chicago_mtl1_164.2228_176.2986_18.h5' 
 
 
 modelname = 'chicago_mtl1'
 temperature = 1
 lstmModel = BiLSTM_uni.loadModel(modelPath, temperature)
-
-for run in range(4):
-    s_info_allit = 'I'
-    s_info_rhyme = 'S1'
+# side_info_allit_fix = ['B', 'I', 'O'] * 100
+for run in range(1): ######### number of files with a certain side value 
+    s_info_allit = 'B'
+    s_info_rhyme = '0'
     try:
         i=0
         quatrains = []
-        while i < 3:
+        while i < 200: ########## number of samples
             text = 'sos'
             generation_mode = 'sample' # 'max' or 'sample'
             predictions_sampled = [[]]
+            
+            #this is generating a sequence. 
             while True:
                 sentences = []
                 for sent in nltk.sent_tokenize(text):
                     word_token = nltk.word_tokenize(sent)
+                    
                     side_info_allit = [str(s_info_allit)] * len(word_token)
+#                     side_info_allit.extend(['I'] * (len(word_token)-1))
+#                     side_info_allit = side_info_allit_fix[:len(word_token)]
+#                     print(side_info_allit)
                     side_info_rhyme = [str(s_info_rhyme)] * len(word_token)
                     sentences.append({'tokens': word_token, 'side_info_allit': side_info_allit, 'side_info_rhyme': side_info_rhyme})
                  
