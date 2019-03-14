@@ -522,8 +522,11 @@ class BiLSTM_uni:
                 unpaddedPredLabels = []
                 for tokenIdx in range(len(sentences[idx]['tokens'])):
                     if sentences[idx]['tokens'][tokenIdx] != 0:  # Skip padding tokens
-                        unpaddedPredLabels.append(paddedPredLabels[idx][tokenIdx])
-
+                        try:
+                            unpaddedPredLabels.append(paddedPredLabels[idx][tokenIdx])
+                        except:
+                            print('bleep')
+                            break
 
                 predLabels.append(unpaddedPredLabels) # list mit indexen, 
             

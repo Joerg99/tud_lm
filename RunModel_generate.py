@@ -24,14 +24,16 @@ import keras.losses
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/chicago/unconditioned/chicago_35.h5' # with perplexity and POS label DOESNT RUN
+modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/gutentag/unconditioned/gutentag_248.2973_249.1088_50.h5' # with perplexity and POS label DOESNT RUN
+# modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/chicago/unconditioned/chicago_35.h5' # with perplexity and POS label DOESNT RUN
 
-modelname = 'chicago'
+modelname = 'gutentag'
 
 temperature = 1
 lstmModel = BiLSTM_uni.loadModel(modelPath, temperature)
 
-for _ in range(30):
+i= 0
+while i < 100:
     text = 'sos'
     generation_mode = 'sample' # 'max' or 'sample'
     predictions_sampled = [[]]
@@ -50,6 +52,7 @@ for _ in range(30):
         text +=' '+tags[modelname][0][-1]
         if tags[modelname][0][-1]in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags[modelname][0]) == 100:
             print('neuer Text: ', text)
+            i += 1
             break
         
 

@@ -27,6 +27,8 @@ from .keraslayers.ChainCRF import ChainCRF
 import sys
 from sklearn.metrics import log_loss
 from numpy import newaxis
+import numpy as np
+import heapq
 
 class BiLSTM_uni:
     def __init__(self, params=None):
@@ -45,6 +47,7 @@ class BiLSTM_uni:
         if params != None:
             defaultParams.update(params)
         self.params = defaultParams
+        self.n_largest_recordings_from_softmax = []
 
 
 
@@ -221,7 +224,10 @@ class BiLSTM_uni:
                     temp = self.params['temperature']
                     logits_temperature = Lambda(lambda x : x / temp)(output)
                     
+#                     print(logits_temperature)
+#                     print(type(logits_temperature), len(logits_temperature))
                     output = TimeDistributed(Dense(n_class_labels, activation='softmax'), name=modelName+'_softmax')(logits_temperature) # without temperature input is (output)
+                    
                     
                     def my_loss(y_true, y_pred): # my_loss = perplexity
                         perplexity = K.exp(K.sparse_categorical_crossentropy(y_true, y_pred))
@@ -529,7 +535,7 @@ class BiLSTM_uni:
         return sentenceLengths
             
 
-    def tagSentences_generate(self, sentences, predictions_sampled, generation_mode):
+    def tagSentences_generate(self, sentences, predictions_sampled, generation_mode, modelname):
         # Pad characters
         if 'characters' in self.params['featureNames']:
             self.padCharacters(sentences)
@@ -537,7 +543,7 @@ class BiLSTM_uni:
 #         print('sentences', sentences)
         labels = {}
         for modelName, model in self.models.items(): # modelname = textgrid, immer nur ein model drin
-            paddedPredLabels = self.predictLabels_generate(model, sentences, predictions_sampled, generation_mode)
+            paddedPredLabels = self.predictLabels_generate(model, sentences, predictions_sampled, generation_mode, modelname)
             
             predLabels = []
             for idx in range(len(sentences)): ###### immer nur ein satz
@@ -554,10 +560,10 @@ class BiLSTM_uni:
             # CONVERT PREDLABEL INDEX TO LABEL
             idx2Label = self.idx2Labels[modelName]
             labels[modelName] = [[idx2Label[tag] for tag in tagSentence] for tagSentence in predLabels]
-            #print('labels ', labels)
+#             print('labels ', labels)
         return labels
     
-    def predictLabels_generate(self, model, sentences, predictions_sampled, generation_mode):
+    def predictLabels_generate(self, model, sentences, predictions_sampled, generation_mode, modelname):
         predLabels = [None]*len(sentences)
         sentenceLengths = self.getSentenceLengths(sentences) # sentenceLengths for speed....
                 
@@ -571,13 +577,15 @@ class BiLSTM_uni:
             
 #             print('nnInput:', nnInput[1])
             predictions = model.predict(nnInput, verbose=False)
-            
+#             print(len(predictions[0][-1]), type(predictions), len(predictions))
+#             print(predictions[0][-1])
             #generation_mode = 'sample'   # 'max' oder 'sample'
             if generation_mode == 'sample':
                 ########### for sampling
                 predicted = np.random.choice(len(predictions[0][-1]), p=predictions[0][-1])
+                n_largest = heapq.nlargest(20, range(len(predictions[0][-1])), predictions[0][-1].take)
+                n_largest.insert(0, predicted)
                 predictions_sampled[0].append(predicted)
-#                 print('neu: ', predictions_sampled)
                 predIdx = 0
                 for idx in indices:
                     predLabels[idx] = predictions_sampled[predIdx]    
@@ -590,7 +598,11 @@ class BiLSTM_uni:
                 for idx in indices:
                     predLabels[idx] = predictions[predIdx]    
                     predIdx += 1 
-                
+        
+        idx2Label = self.idx2Labels[modelname]
+        n_highest_rated_words =  [idx2Label[index] for index in n_largest]
+        self.n_largest_recordings_from_softmax.append(n_highest_rated_words)
+        
         return predLabels
     
     def tagSentences(self, sentences):

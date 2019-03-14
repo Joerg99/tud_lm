@@ -32,7 +32,7 @@ set_session(tf.Session(config=sess_config))
 #     text = f.read()
 
 # :: Load the model ::
-modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/chicago/real_value_relative_allit/chicago_498.2776_508.7411_65.h5' 
+modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/chicago/allit/real_value/chicago_467.8871_485.6739_38.h5' 
 
 
 modelname = 'chicago'
@@ -41,16 +41,17 @@ modelname = 'chicago'
 
 
 i=0
-temperature = 1
+temperature = 0.4
 lstmModel = BiLSTM_uni.loadModel(modelPath, temperature)
- 
+
 # for s_info in [-2, -1, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2]:
 # for s_info in [0.0]:
-for s_info in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2]:
+# for s_info in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1]:
+for s_info in [0.3]:
     print('starting')
     i=0
     quatrains = []
-    while i < 100:
+    while i < 30:
         text = 'sos'
         generation_mode = 'sample' # 'max' or 'sample'
         predictions_sampled = [[]]
@@ -72,7 +73,7 @@ for s_info in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2]:
             #print('dataMatrix ', dataMatrix)
             #print(dataMatrix[0]['tokens'])
             # :: Tag the input ::
-            tags = lstmModel.tagSentences_generate(dataMatrix, predictions_sampled, generation_mode)
+            tags = lstmModel.tagSentences_generate(dataMatrix, predictions_sampled, generation_mode, modelname)
             #print('tags ', tags)
             text +=' '+tags[modelname][0][-1]
             if tags[modelname][0][-1] in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags[modelname][0]) == 100:
@@ -80,10 +81,20 @@ for s_info in [0.0, 0.1, 0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1, 2]:
                 quatrains.append(text)
                 i+=1
                 break
-    with open('evaluation_files/'+modelname+'/real_value_relative_allit/'+modelname+str(s_info), 'w') as file:
-        for quatrain in quatrains:
-            file.write('%s \n' %quatrain)
-    print('wrote a file')
+
+    with open('softmax_eval/softmax_eval_'+str(s_info), 'w') as file:
+        for line in lstmModel.n_largest_recordings_from_softmax:
+            for word in line:
+                file.write(word+' ')
+            file.write('\n')
+    lstmModel.n_largest_recordings_from_softmax = []
+    
+#     with open('evaluation_files/'+modelname+'/real_value_relative_allit/'+modelname+str(s_info), 'w') as file:
+#         for quatrain in quatrains:
+#             file.write('%s \n' %quatrain)
+#     print('wrote a file')
+
+
 #     time.sleep(60)
     
 

@@ -32,6 +32,88 @@ set_session(tf.Session(config=sess_config))
 #     text = f.read()
 
 # :: Load the model ::
+temperature = 1
+
+
+modelPath_1 = 'models/chicago/mtl/chicago_mtl1_141.3714_145.2896_13.h5' 
+modelname_1 = 'chicago_mtl1'
+lstmModel_1 = BiLSTM_uni.loadModel(modelPath_1, temperature)
+
+modelPath_2 = 'models/chicago/mtl/chicago_mtl2_141.3714_145.2896_13.h5' 
+modelname_2 = 'chicago_mtl2'
+lstmModel_2 = BiLSTM_uni.loadModel(modelPath_2, temperature)
+
+modelPath_3 = 'models/chicago/mtl/chicago_mtl3_141.3714_145.2896_13.h5' 
+modelname_3 = 'chicago_mtl3'
+lstmModel_3 = BiLSTM_uni.loadModel(modelPath_3, temperature)
+
+
+for run in range(15): ######### number of files with a certain side value 
+    
+    
+    side_info_allit = ['start'] ###### START WITH
+    side_info_rhyme = ['start']
+    try:
+        i=0
+        quatrains = []
+        while i < 10: ########## number of samples
+            text = 'sos'
+            generation_mode = 'sample' # 'max' or 'sample'
+            predictions_sampled_1 = [[]]
+            predictions_sampled_2 = [[]]
+            predictions_sampled_3 = [[]]
+            
+            #this is generating a sequence. 
+            while True:
+                sentences = []
+                for sent in nltk.sent_tokenize(text):
+                    word_token = nltk.word_tokenize(sent)
+                    
+                    sentences.append({'tokens': word_token, 'side_info_allit': side_info_allit, 'side_info_rhyme': side_info_rhyme})
+                
+                addCharInformation(sentences)
+                 
+                dataMatrix_1 = createMatrices(sentences, lstmModel_1.mappings, True)
+                dataMatrix_2 = createMatrices(sentences, lstmModel_2.mappings, True)
+                dataMatrix_3 = createMatrices(sentences, lstmModel_3.mappings, True)
+                                        
+                # :: Tag the input ::
+                tags_1 = lstmModel_1.tagSentences_generate(dataMatrix_1, predictions_sampled_1, generation_mode)
+                
+                tags_2 = lstmModel_2.tagSentences_generate(dataMatrix_2, predictions_sampled_2, generation_mode)
+                allit_info_from_model = tags_2[modelname_2][0][-1]
+                side_info_allit.append(allit_info_from_model)
+                
+                tags_3 = lstmModel_3.tagSentences_generate(dataMatrix_3, predictions_sampled_3, generation_mode)
+                rhyme_info_from_model = tags_3[modelname_3][0][-1]
+                side_info_rhyme.append(rhyme_info_from_model)
+                
+                
+                text +=' '+tags_1[modelname_1][0][-1]
+                if tags_1[modelname_1][0][-1] in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags_1[modelname_1][0]) == 100:
+                    print(text)
+                    quatrains.append(text)
+                    print(side_info_rhyme)
+#                     allits_string = ''
+#                     for v in side_info_allit:
+#                         allits_string += allits_string+' '
+#                     
+#                     quatrains.append(allits_string)
+                    i+=1
+                    side_info_allit = ['start']
+                    side_info_rhyme = ['start']
+                    break
+
+
+        with open('evaluation_files/'+modelname_1+'/embedding/'+modelname_1+str(run)+'ep22', 'w') as file:
+            for quatrain in quatrains:
+                file.write('%s \n' %quatrain)
+    except Exception as e:
+        print('Exception!!!! ', e)
+        continue
+    
+    
+'''   
 modelPath = 'models/chicago/mtl/chicago_mtl1_164.2228_176.2986_18.h5' 
 
 
@@ -62,7 +144,11 @@ for run in range(1): ######### number of files with a certain side value
 #                     print(side_info_allit)
                     side_info_rhyme = [str(s_info_rhyme)] * len(word_token)
                     sentences.append({'tokens': word_token, 'side_info_allit': side_info_allit, 'side_info_rhyme': side_info_rhyme})
-                 
+                
+                
+                
+                print(sentences)
+                
                 addCharInformation(sentences)
                  
                 dataMatrix = createMatrices(sentences, lstmModel.mappings, True)
@@ -72,7 +158,6 @@ for run in range(1): ######### number of files with a certain side value
                 #print(dataMatrix[0]['tokens'])
                 # :: Tag the input ::
                 tags = lstmModel.tagSentences_generate(dataMatrix, predictions_sampled, generation_mode)
-                #print('tags ', tags)
                 text +=' '+tags[modelname][0][-1]
                 if tags[modelname][0][-1] in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags[modelname][0]) == 100:
                     print('neuer Text: ', text)
@@ -85,7 +170,7 @@ for run in range(1): ######### number of files with a certain side value
     except Exception as e:
         print('Exception!!!! ', e)
         continue
-    
+'''
     
 # short_verses = []
 # for _ in range(10):

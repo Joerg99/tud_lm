@@ -64,18 +64,18 @@ logger.addHandler(ch)
 #          'commentSymbol': None}
 # }
 my_datasets = {
-    'chicago_mtl1':
+    'chicago_mtl1': # lm
         {'columns': {1:'tokens', 2:'POS', 3:'side_info_allit', 5:'side_info_rhyme'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
          'label': 'POS',
          'evaluate': True,
          'commentSymbol': None},
-    'chicago_mtl2':
-        {'columns': {1:'tokens', 3:'BIO', 4:'side_info_allit', 5:'side_info_rhyme'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
+    'chicago_mtl2': # alliteration
+        {'columns': {1:'tokens', 4:'BIO', 3:'side_info_allit', 5:'side_info_rhyme'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
          'label': 'BIO',
          'evaluate': True,
          'commentSymbol': None},
-    'chicago_mtl3':
-        {'columns': {1:'tokens', 6:'RHYME', 4:'side_info_allit', 5:'side_info_rhyme'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
+    'chicago_mtl3': # reim
+        {'columns': {1:'tokens', 6:'RHYME', 3:'side_info_allit', 5:'side_info_rhyme'},  #3: allit density , 4: rhyme density , 5: allit density_norm, 6: rhyme density_norm
          'label': 'RHYME',
          'evaluate': True,
          'commentSymbol': None}
