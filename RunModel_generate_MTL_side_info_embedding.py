@@ -21,31 +21,21 @@ from keras.backend.tensorflow_backend import set_session
 set_session(tf.Session(config=sess_config))
 
 
-# if len(sys.argv) < 3:
-#     print("Usage: python RunModel.py modelPath inputPath")
-#     exit()
-
-#inputPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/input.txt'
-
-# :: Read input ::
-# with open(inputPath, 'r') as f:
-#     text = f.read()
-
 # :: Load the model ::
 temperature = 1
 
 
-modelPath_1 = 'models/chicago/mtl/chicago_mtl1_141.3714_145.2896_13.h5' 
+modelPath_1 = 'models/chicago/mtl_without_rhyme/chicago_mtl1_292.9635_331.0788_100.h5' 
 modelname_1 = 'chicago_mtl1'
-lstmModel_1 = BiLSTM_uni.loadModel(modelPath_1, temperature)
+lstmModel_1 = BiLSTM_uni.loadModel(modelPath_1, 1)
 
-modelPath_2 = 'models/chicago/mtl/chicago_mtl2_141.3714_145.2896_13.h5' 
+modelPath_2 = 'models/chicago/mtl_without_rhyme/chicago_mtl2_292.9635_331.0788_100.h5' 
 modelname_2 = 'chicago_mtl2'
-lstmModel_2 = BiLSTM_uni.loadModel(modelPath_2, temperature)
+lstmModel_2 = BiLSTM_uni.loadModel(modelPath_2, 1)
 
-modelPath_3 = 'models/chicago/mtl/chicago_mtl3_141.3714_145.2896_13.h5' 
-modelname_3 = 'chicago_mtl3'
-lstmModel_3 = BiLSTM_uni.loadModel(modelPath_3, temperature)
+# modelPath_3 = 'models/chicago/mtl/chicago_mtl3_160.6308_164.5199_100.h5' 
+# modelname_3 = 'chicago_mtl3'
+# lstmModel_3 = BiLSTM_uni.loadModel(modelPath_3, 1)
 
 
 for run in range(15): ######### number of files with a certain side value 
@@ -69,13 +59,13 @@ for run in range(15): ######### number of files with a certain side value
                 for sent in nltk.sent_tokenize(text):
                     word_token = nltk.word_tokenize(sent)
                     
-                    sentences.append({'tokens': word_token, 'side_info_allit': side_info_allit, 'side_info_rhyme': side_info_rhyme})
+                    sentences.append({'tokens': word_token, 'side_info_allit': side_info_allit}) #, 'side_info_rhyme': side_info_rhyme})
                 
                 addCharInformation(sentences)
                  
                 dataMatrix_1 = createMatrices(sentences, lstmModel_1.mappings, True)
                 dataMatrix_2 = createMatrices(sentences, lstmModel_2.mappings, True)
-                dataMatrix_3 = createMatrices(sentences, lstmModel_3.mappings, True)
+#                 dataMatrix_3 = createMatrices(sentences, lstmModel_3.mappings, True)
                                         
                 # :: Tag the input ::
                 tags_1 = lstmModel_1.tagSentences_generate(dataMatrix_1, predictions_sampled_1, generation_mode)
@@ -84,16 +74,18 @@ for run in range(15): ######### number of files with a certain side value
                 allit_info_from_model = tags_2[modelname_2][0][-1]
                 side_info_allit.append(allit_info_from_model)
                 
-                tags_3 = lstmModel_3.tagSentences_generate(dataMatrix_3, predictions_sampled_3, generation_mode)
-                rhyme_info_from_model = tags_3[modelname_3][0][-1]
-                side_info_rhyme.append(rhyme_info_from_model)
+#                 tags_3 = lstmModel_3.tagSentences_generate(dataMatrix_3, predictions_sampled_3, generation_mode)
+#                 rhyme_info_from_model = tags_3[modelname_3][0][-1]
+#                 side_info_rhyme.append(rhyme_info_from_model)
                 
                 
                 text +=' '+tags_1[modelname_1][0][-1]
                 if tags_1[modelname_1][0][-1] in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags_1[modelname_1][0]) == 100:
                     print(text)
                     quatrains.append(text)
-                    print(side_info_rhyme)
+                    print(side_info_allit)
+#                     print(side_info_rhyme)
+                    
 #                     allits_string = ''
 #                     for v in side_info_allit:
 #                         allits_string += allits_string+' '
@@ -101,11 +93,11 @@ for run in range(15): ######### number of files with a certain side value
 #                     quatrains.append(allits_string)
                     i+=1
                     side_info_allit = ['start']
-                    side_info_rhyme = ['start']
+#                     side_info_rhyme = ['start']
                     break
 
 
-        with open('evaluation_files/'+modelname_1+'/embedding/'+modelname_1+str(run)+'ep22', 'w') as file:
+        with open('evaluation_files/'+modelname_1+'/embedding/mtl_without_rhyme/'+modelname_1+str(run)+'ep1005', 'w') as file:
             for quatrain in quatrains:
                 file.write('%s \n' %quatrain)
     except Exception as e:

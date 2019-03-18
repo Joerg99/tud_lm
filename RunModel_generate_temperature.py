@@ -6,7 +6,7 @@
 from __future__ import print_function
 import nltk
 from util.preprocessing_normal import addCharInformation, createMatrices, addCasingInformation
-from neuralnets.BiLSTM_uni_simple_generation import BiLSTM_uni
+from neuralnets.BiLSTM_uni_simple_generation_temperature import BiLSTM_uni
 import sys
 import numpy as np
 import time
@@ -29,38 +29,32 @@ modelPath = '/home/joerg/workspace/emnlp2017-bilstm-cnn-crf/models/gutentag/unco
 
 modelname = 'gutentag'
 
-temperature = 0
+temperature = 0.6
 lstmModel = BiLSTM_uni.loadModel(modelPath, temperature)
-for temp in [0.2, 0.4, 0.6, 0.8, 1, 1.2, 1.4, 1.6]:
-    quatrains = []
-    i= 0
-    while i < 10:
-        text = 'sos'
-        generation_mode = 'sample' # 'max' or 'sample'
-        predictions_sampled = [[]]
-        while True:
-            #sentences = [{'tokens': nltk.word_tokenize(sent)} for sent in nltk.sent_tokenize(text)]
-            sentences = []
-            for sent in nltk.sent_tokenize(text):
-                word_token = nltk.word_tokenize(sent)
-                sentences.append({'tokens': word_token})
-                                    
-            addCharInformation(sentences)
-            #addCasingInformation(sentences)
-            dataMatrix = createMatrices(sentences, lstmModel.mappings, True)
-            # :: Tag the input ::
-            tags = lstmModel.tagSentences_generate(dataMatrix, predictions_sampled, generation_mode, temp)
-            text +=' '+tags[modelname][0][-1]
-            if tags[modelname][0][-1]in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags[modelname][0]) == 100:
-                print('neuer Text: ', text)
-                quatrains.append(text)
-                i += 1
-                break
 
-    with open('evaluation_files/'+modelname+'/temperature/'+modelname+'_'+str(temp), 'w') as file:
-        for quatrain in quatrains:
-            file.write('%s \n' %quatrain)
-    print('wrote a file')    
+i= 0
+while i < 10:
+    text = 'sos'
+    generation_mode = 'sample' # 'max' or 'sample'
+    predictions_sampled = [[]]
+    while True:
+        #sentences = [{'tokens': nltk.word_tokenize(sent)} for sent in nltk.sent_tokenize(text)]
+        sentences = []
+        for sent in nltk.sent_tokenize(text):
+            word_token = nltk.word_tokenize(sent)
+            sentences.append({'tokens': word_token})
+                                
+        addCharInformation(sentences)
+        #addCasingInformation(sentences)
+        dataMatrix = createMatrices(sentences, lstmModel.mappings, True)
+        # :: Tag the input ::
+        tags = lstmModel.tagSentences_generate(dataMatrix, predictions_sampled, generation_mode, temperature)
+        text +=' '+tags[modelname][0][-1]
+        if tags[modelname][0][-1]in ['eos_n', 'eos_p', '<eos>', 'eos'] or len(tags[modelname][0]) == 100:
+            print('neuer Text: ', text)
+            i += 1
+            break
+        
 
 
 def run_with_pos_neg_embeddings():

@@ -535,7 +535,7 @@ class BiLSTM_uni:
         return sentenceLengths
             
 
-    def tagSentences_generate(self, sentences, predictions_sampled, generation_mode, modelname):
+    def tagSentences_generate(self, sentences, predictions_sampled, generation_mode, modelname, temperature):
         # Pad characters
         if 'characters' in self.params['featureNames']:
             self.padCharacters(sentences)
@@ -543,7 +543,7 @@ class BiLSTM_uni:
 #         print('sentences', sentences)
         labels = {}
         for modelName, model in self.models.items(): # modelname = textgrid, immer nur ein model drin
-            paddedPredLabels = self.predictLabels_generate(model, sentences, predictions_sampled, generation_mode, modelname)
+            paddedPredLabels = self.predictLabels_generate(model, sentences, predictions_sampled, generation_mode, modelname, temperature)
             
             predLabels = []
             for idx in range(len(sentences)): ###### immer nur ein satz
@@ -563,7 +563,7 @@ class BiLSTM_uni:
 #             print('labels ', labels)
         return labels
     
-    def predictLabels_generate(self, model, sentences, predictions_sampled, generation_mode, modelname):
+    def predictLabels_generate(self, model, sentences, predictions_sampled, generation_mode, modelname, temperature):
         predLabels = [None]*len(sentences)
         sentenceLengths = self.getSentenceLengths(sentences) # sentenceLengths for speed....
                 
@@ -577,6 +577,16 @@ class BiLSTM_uni:
             
 #             print('nnInput:', nnInput[1])
             predictions = model.predict(nnInput, verbose=False)
+            
+############# TEMPERATURE
+            preds = np.asarray(predictions[0][-1]).astype('float64')
+            preds = np.log(preds) / temperature
+            exp_preds = np.exp(preds)
+            preds = exp_preds / np.sum(exp_preds)
+            probas = np.random.multinomial(1, preds, 1)
+            predictions[0][-1] = probas
+#############
+            
 #             print(len(predictions[0][-1]), type(predictions), len(predictions))
 #             print(predictions[0][-1])
             #generation_mode = 'sample'   # 'max' oder 'sample'

@@ -507,7 +507,7 @@ class BiLSTM_uni:
         return sentenceLengths
             
 
-    def tagSentences_generate(self, sentences, predictions_sampled, generation_mode):
+    def tagSentences_generate(self, sentences, predictions_sampled, generation_mode, temperature):
         # Pad characters
         if 'characters' in self.params['featureNames']:
             self.padCharacters(sentences)
@@ -515,7 +515,7 @@ class BiLSTM_uni:
 #         print('sentences', sentences)
         labels = {}
         for modelName, model in self.models.items(): # modelname = textgrid, immer nur ein model drin
-            paddedPredLabels = self.predictLabels_generate(model, sentences, predictions_sampled, generation_mode)
+            paddedPredLabels = self.predictLabels_generate(model, sentences, predictions_sampled, generation_mode, temperature)
             
             predLabels = []
             for idx in range(len(sentences)): ###### immer nur ein satz
@@ -536,7 +536,7 @@ class BiLSTM_uni:
             #print('labels ', labels)
         return labels
     
-    def predictLabels_generate(self, model, sentences, predictions_sampled, generation_mode):
+    def predictLabels_generate(self, model, sentences, predictions_sampled, generation_mode, temperature):
         predLabels = [None]*len(sentences)
         sentenceLengths = self.getSentenceLengths(sentences) # sentenceLengths for speed....
                 
@@ -552,6 +552,16 @@ class BiLSTM_uni:
 #             if len(nnInput) == 2:
 #                 nnInput[-1] = np.zeros_like(nnInput[0]) #set POS to zero (POS holds label in generation mode)
             predictions = model.predict(nnInput, verbose=False)
+            
+############# TEMPERATURE
+            preds = np.asarray(predictions[0][-1]).astype('float64')
+            preds = np.log(preds) / temperature
+            exp_preds = np.exp(preds)
+            preds = exp_preds / np.sum(exp_preds)
+            probas = np.random.multinomial(1, preds, 1)
+            predictions[0][-1] = probas
+#############
+            
             
             #generation_mode = 'sample'   # 'max' oder 'sample'
             if generation_mode == 'sample':
